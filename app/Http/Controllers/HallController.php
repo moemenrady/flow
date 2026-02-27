@@ -1,4 +1,4 @@
-<?php
+<!--
 
 namespace App\Http\Controllers;
 
@@ -36,4 +36,4 @@ class HallController extends Controller
         $halls = Hall::latest()->get();
         return view('managment.changes.halls.create', compact('halls'));
     }
-}
+} -->

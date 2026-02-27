@@ -63,7 +63,7 @@ require __DIR__ . '/expenses.php';
 require __DIR__ . '/sales.php';
 require __DIR__ . '/sessions.php';
 require __DIR__ . '/main.php';
-require __DIR__ . '/halls.php';
+// require __DIR__ . '/halls.php';
 require __DIR__ . '/analytics.php';
 require __DIR__ . '/daily.php';
 require __DIR__ . '/invoices.php';

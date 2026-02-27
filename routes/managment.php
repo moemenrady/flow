@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\ExpenseTypeController;
 use App\Http\Controllers\FullDayHoursController;
-use App\Http\Controllers\HallController;
 use App\Http\Controllers\ManagmentController;
 use App\Http\Controllers\SubscriptionPlanController;
 use App\Http\Controllers\SystemEditController;
