@@ -1,12 +1,146 @@
 /* خلفية الصفحة */
 .space {
-    height: 50px; /* المسافة بين العناصر */
+    height: 50px;
+    /* المسافة بين العناصر */
 }
+
+/* ================= ROOT ================= */
+:root {
+    --prime: #51141b;
+    --soft: #8d5450;
+    --bg-color: #ae9382;
+    /* اللون المفضل لديك */
+    --white-soft: #f4eee8;
+    --glass-white: rgba(255, 255, 255, 0.15);
+    --text-main: #ffffff;
+}
+
+/* ================= BACKGROUND ================= */
 body {
     margin: 0;
-    font-family: Arial, sans-serif;
     min-height: 100vh;
-    background: linear-gradient(to top, #F8E0C1, #ffffff);
+    font-family: "Segoe UI", Tahoma, sans-serif;
+    /* جعل الخلفية تعتمد بشكل أساسي على اللون المطلوب مع تدرج عميق */
+    background:
+        radial-gradient(circle at 10% 10%, var(--soft), transparent 40%),
+        radial-gradient(circle at 90% 90%, var(--prime), transparent 40%),
+        var(--bg-color);
+    background-attachment: fixed;
+    color: var(--text-main);
+    overflow-x: hidden;
+}
+
+/* الكرات العائمة لتعزيز تأثير الـ Auth */
+body::before,
+body::after {
+    content: "";
+    position: fixed;
+    width: 450px;
+    height: 450px;
+    border-radius: 50%;
+    filter: blur(100px);
+    z-index: -1;
+    opacity: 0.5;
+    animation: floatMove 15s infinite alternate ease-in-out;
+}
+
+body::before {
+    background: var(--prime);
+    top: -100px;
+    left: -100px;
+}
+
+body::after {
+    background: var(--soft);
+    bottom: -100px;
+    right: -100px;
+    animation-delay: -5s;
+}
+
+@keyframes floatMove {
+    from {
+        transform: translate(0, 0);
+    }
+
+    to {
+        transform: translate(50px, 100px);
+    }
+}
+
+
+
+/* ===== Main Wrapper ===== */
+.main-dashboard {
+    padding-top: 120px;
+    padding-bottom: 80px;
+}
+
+/* ===== Grid ===== */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 40px;
+    max-width: 1200px;
+    margin: auto;
+    padding: 0 20px;
+}
+
+/* ===== Card ===== */
+.dashboard-card {
+    background: var(--prime);
+    backdrop-filter: blur(10px);
+    border-radius: 22px;
+    padding: 36px 24px;
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .12);
+    color: #fff;
+    text-align: center;
+    cursor: pointer;
+    transition: all .45s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Glow border */
+.dashboard-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 22px;
+    padding: 2px;
+    background: linear-gradient(135deg, #e8b980, #fff, #f3c892);
+    -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity .5s;
+}
+
+.dashboard-card:hover::after {
+    opacity: 1;
+}
+
+/* Hover */
+.dashboard-card:hover {
+    transform: translateY(-10px) scale(1.02);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, .25);
+}
+
+/* Icon */
+.dashboard-card img {
+    width: 54px;
+    margin-bottom: 16px;
+    color: #000;
+    opacity: .9;
+}
+
+/* Title */
+.dashboard-card span {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: .3px;
 }
 
 /* النافبار */
@@ -14,35 +148,38 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 20px; /* مسافة بين اللينكات */
+    gap: 20px;
+    /* مسافة بين اللينكات */
     padding: 15px 25px;
     backdrop-filter: blur(6px);
     position: fixed;
     top: 0;
     left: 0;
-    right: 0;                  
-    max-width: calc(100% - 140px);  
-    margin: 0 auto;            
+    right: 0;
+    max-width: calc(100% - 140px);
+    margin: 0 auto;
     z-index: 1100;
-    border-radius: 12px;       
+    border-radius: 12px;
 }
 
 
 /* اللينكات */
 .navbar a {
     text-decoration: none;
-    color: #444;
+    color: #000;
     font-weight: 600;
-    padding: 10px 18px;   
+    padding: 10px 18px;
     border-radius: 6px;
     transition: all 0.3s ease;
 }
+
 .navbar a.active {
-    background: linear-gradient(to right, #F8E0C1, #ffffff);
-    color: #000;
+    background: linear-gradient(to right, #51141b, #8d5450);
+    color: var(--white-soft);
     font-weight: bold;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
+
 .navbar a:hover {
     color: #000;
     transform: scale(1.05);
@@ -50,13 +187,13 @@ body {
 
 /* محتوى الصفحة ميختفيش ورا النافبار */
 main.custom-container {
-    padding-top: 100px; 
+    padding-top: 100px;
 }
 
 /* استجابة للشاشات الصغيرة */
 @media (max-width: 768px) {
     .navbar {
-        flex-wrap: wrap;       
+        flex-wrap: wrap;
         justify-content: flex-start;
         gap: 10px;
         padding: 10px 15px;
@@ -71,34 +208,70 @@ main.custom-container {
 /* زرار فتح الـ Drawer */
 .drawer-toggle {
     position: fixed;
-    top: 75px;             
+    top: 75px;
     left: 15px;
-    background: #F8E0C1;
+    background: var(--soft-prime);
     border: none;
     padding: 8px 12px;
     border-radius: 8px;
     font-size: 20px;
     cursor: pointer;
-    z-index: 1200;         
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    z-index: 1200;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .drawer-toggle:hover {
-    background: #F8E0C1;
+    background: var(--prime);
 }
 
 /* Drawer */
 .drawer {
     position: fixed;
-    top: 60px;  
-    left: -250px; 
+    top: 60px;
+    left: -250px;
     width: 250px;
     height: calc(100% - 60px);
-    background: #F8E0C1;
-    box-shadow: 2px 0 10px rgba(0,0,0,0.15);
+    background:
+        radial-gradient(circle at 10% 10%, var(--soft), transparent 40%),
+        radial-gradient(circle at 90% 90%, var(--prime), transparent 40%),
+        var(--bg-color);
+    background-attachment: fixed;
+    color: var(--text-main);
+    overflow-x: hidden;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.15);
     transition: left 0.3s ease;
     z-index: 1000;
-    padding-top: 20px;  
+
+    padding-top: 20px;
+}
+
+
+
+/* الكرات العائمة لتعزيز تأثير الـ Auth */
+.drawer::before,
+.drawer::after {
+    content: "";
+    position: fixed;
+    width: 450px;
+    height: 450px;
+    border-radius: 50%;
+    filter: blur(100px);
+    z-index: -1;
+    opacity: 0.5;
+    animation: floatMove 15s infinite alternate ease-in-out;
+}
+
+.drawer::before {
+    background: var(--prime);
+    top: -100px;
+    left: -100px;
+}
+
+.drawer::after {
+    background: var(--soft);
+    bottom: -100px;
+    right: -100px;
+    animation-delay: -5s;
 }
 
 .drawer.open {
@@ -129,22 +302,26 @@ main.custom-container {
     background: #F8E0C1;
     border-radius: 5px;
 }
+
 /* لما العرض يكون أقل من 768px (موبايل / تابلت صغير) */
 @media (max-width: 768px) {
-  .drawer {
-    top: 120px; /* ضعف المسافة */
-    height: calc(100% - 120px); /* علشان يفضل واخد الطول صح */
-  }
+    .drawer {
+        top: 120px;
+        /* ضعف المسافة */
+        height: calc(100% - 120px);
+        /* علشان يفضل واخد الطول صح */
+    }
 
-  .drawer-toggle {
-    top: 135px; /* كمان زرار التوجل ينزل لتحت شوية */
-  }
+    .drawer-toggle {
+        top: 135px;
+        /* كمان زرار التوجل ينزل لتحت شوية */
+    }
 }
 
 
 /* padding-top للمحتوى عشان ما يختفيش ورا navbar */
 main.custom-container {
-    padding-top: 80px; 
+    padding-top: 80px;
 }
 
 
@@ -159,36 +336,36 @@ main.custom-container {
 /* الجريد */
 .grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr); 
+    grid-template-columns: repeat(3, 1fr);
     gap: 60px;
 }
 
 /* الشاشات المتوسطة (تابلت) */
 @media (max-width: 992px) {
     .grid {
-        grid-template-columns: repeat(2, 1fr); 
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
 /* الشاشات الصغيرة (موبايل) */
 @media (max-width: 600px) {
     .grid {
-        grid-template-columns: 1fr; 
+        grid-template-columns: 1fr;
     }
 }
 
 
 /* الكروت */
 .custom-card {
-  
-    background:linear-gradient( #F8E0C1,#FFFFFF);
+
+    background: linear-gradient(#F8E0C1, #FFFFFF);
     border-radius: 16px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     padding: 40px 20px;
     text-align: center;
     transition: all 0.4s ease;
     cursor: pointer;
-    position: relative; 
+    position: relative;
     overflow: hidden;
     backdrop-filter: blur(6px);
     border: 1px solid rgba(255, 255, 255, 0.3);
@@ -196,18 +373,22 @@ main.custom-container {
     flex-direction: column;
     align-items: center;
 }
+
 /* الإشارة جنب النص */
 /* حاوية عامودية */
 .shift-stack {
     display: flex;
     flex-direction: column;
-    align-items: center; /* في النص */
-    gap: 10px; /* مسافة بين العلامة والكلمة */
+    align-items: center;
+    /* في النص */
+    gap: 10px;
+    /* مسافة بين العلامة والكلمة */
 }
 
 /* العلامة فوق النص */
 .shift-indicator-top {
-    width: 22px;   /* أكبر شوية */
+    width: 22px;
+    /* أكبر شوية */
     height: 22px;
     border-radius: 50%;
     border: 2px solid #fff;
@@ -225,48 +406,102 @@ main.custom-container {
     box-shadow: 0 0 8px #cc2e2e;
 }
 
-.custom-card img {
-    width: 50px;
-    height: 50px;
-    margin-bottom: 15px;
+/* الجدول (الاجمالي) */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 12px;
+    background: transparent;
 }
 
-.custom-card span {
-    font-size: 19px;
-    font-weight: 400;
+thead {
+    background: var(--prime);
 }
 
-/* جلو */
-.custom-card::after {
+thead th {
+    padding: 14px 12px;
+    text-align: center;
+    color: #FFFFFF;
+    font-size: 15px;
+}
+
+tbody {
+    background: transparent;
+}
+
+/* tbody شفاف كما طلبت */
+tbody tr {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+    text-align: center;
+    transition: background .18s ease, transform .18s ease;
+    background: transparent;
+}
+
+/* زر الإضافة (لمعة) */
+#addButton {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    background: linear-gradient(120deg, var(--prime), var(--soft));
+    ;
+    font-size: 48px;
+    font-weight: 600;
+    color: #FFFFFF;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .12);
+    transition: transform .28s ease, box-shadow .28s ease, background .28s;
+    margin: 20px auto;
+    position: relative;
+    overflow: hidden;
+}
+
+#addButton::before {
     content: "";
     position: absolute;
-    inset: 0;
-    border-radius: 16px;
-    padding: 2px;
-    background: linear-gradient(135deg, #9c6010, #ffe1b9,#f9cf98);
-    -webkit-mask:
-      linear-gradient(#fff 0 0) content-box,
-      linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    opacity: 0;
-    transition: opacity 0.6s ease;
+    inset: -120% -30%;
+    background: linear-gradient(120deg, transparent 90%, rgba(255, 255, 255, .65) 50%, transparent 65%);
+    transform: translateX(-100%);
+    transition: transform .6s ease;
+    pointer-events: none;
 }
 
-.custom-card:hover::after {
-    opacity: 1;
+#addButton:hover {
+    transform: translateY(-4px) scale(1.03);
+    background: var(--prime);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, .18);
 }
 
-.custom-card * {
-    position: relative;
-    z-index: 1;
+#addButton:hover::before {
+    transform: translateX(100%);
 }
 
-.custom-card:hover {
-    transform: translateY(-7px) scale(1.001) rotateX(5deg);
-    box-shadow: 0 15px 35px rgba(0,0,0,0.25);
+/* البحث */
+.search-box {
+    margin: 20px auto;
+    text-align: center;
 }
 
+.search-box input {
+    padding: 14px 20px;
+    width: 450px;
+    max-width: 100%;
+    border-radius: 25px;
+    border: 1px solid #ddd;
+    font-size: 15px;
+    outline: none;
+    background: #fff;
+    transition: box-shadow .22s ease, border-color .22s;
+}
+
+.search-box input:focus {
+    border-color: #ffcb9a;
+    box-shadow: 0 0 8px rgba(255, 170, 80, 0.28);
+}
 
 /* خلفية الصفحة مع التدرج */
 .custom-container {
@@ -292,7 +527,7 @@ p {
     text-decoration: none;
     color: #333;
     font-weight: bold;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .custom-btn:hover {

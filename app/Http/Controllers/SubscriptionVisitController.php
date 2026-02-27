@@ -15,11 +15,11 @@ public function showVisits(Subscription $subscription)
     // جلب العلاقات اللي هنستخدمها
     $subscription->load('client', 'plan');
 
-    // نجيب الزيارات مباشرة من الداتا بيز - pagination على 12 عنصر
-    $visits = $subscription->visits()
+$visits = $subscription->visits()
         ->with(['client', 'creator'])
-        ->orderBy('checked_in_at', 'desc')
-        ->paginate(12);
+        ->orderBy('id', 'desc') // اختياري
+        ->get();
+
 
     // حسابات بسيطة للـ header (مثل used/percent)
     $plan = $subscription->plan;

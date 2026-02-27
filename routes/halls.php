@@ -1,4 +1,4 @@
-<?php
+<!-- 
 
 use App\Http\Controllers\HallController;
 Route::middleware('auth')->group(function () {
@@ -7,4 +7,4 @@ Route::middleware('auth')->group(function () {
 
 });
 
-
+ -->

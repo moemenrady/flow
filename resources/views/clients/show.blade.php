@@ -10,31 +10,46 @@
                 <h2>👥 بيانات العميل</h2>
                 <span class="badge">#{{ $client->id }}</span>
             </div>
-             <div class="header-left">
-        <a href="{{ route('clients.edit', $client->id) }}"
-           class="btn edit-btn"
-           title="تعديل بيانات العميل">
-            <span class="edit-ico" aria-hidden="true">✏️</span>
-            <span class="edit-txt">تعديل</span>
-        </a>
-    </div>
-        
+            <div class="header-left">
+                <a href="{{ route('clients.edit', $client->id) }}" class="btn edit-btn" title="تعديل بيانات العميل">
+                    <span class="edit-ico" aria-hidden="true">✏️</span>
+                    <span class="edit-txt">تعديل</span>
+                </a>
+            </div>
+
             <div class="section client-main">
-                <div class="box client-info">
-                    <div class="row">
-                        <div class="col">
-                            <label class="checkbox"><input type="checkbox" checked disabled> <span
-                                    class="lbl">اسم</span></label>
-                            <p class="value">{{ $client->name }}</p>
-                        </div>
-                        <div class="col">
-                            <label class="checkbox"><input type="checkbox" checked disabled> <span class="lbl">رقم
-                                    الهاتف</span></label>
-                            <p class="value">{{ $client->phone }}</p>
+                <div class="box client-info-wrapper">
+
+                    <!-- البيانات -->
+                    <div class="client-info">
+                        <div class="row">
+                            <div class="col">
+                                <label class="checkbox">
+                                    <input type="checkbox" checked disabled>
+                                    <span class="lbl">اسم</span>
+                                </label>
+                                <p class="value">{{ $client->name }}</p>
+                            </div>
+
+                            <div class="col">
+                                <label class="checkbox">
+                                    <input type="checkbox" checked disabled>
+                                    <span class="lbl">رقم الهاتف</span>
+                                </label>
+                                <p class="value">{{ $client->phone }}</p>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- الباركود -->
+                    <div class="client-barcode">
+                        {!! DNS1D::getBarcodeHTML((string) $client->id, 'C128', 2, 60) !!}
+                        <p>ID: {{ $client->id }}</p>
+                    </div>
+
                 </div>
             </div>
+
 
             <div class="section statuses">
                 <h3>📌 حالة الحساب</h3>
@@ -328,5 +343,21 @@
             }
         }
 
+        .client-info-wrapper {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .client-barcode {
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 1px dashed #ccc;
+        }
+
+        .client-barcode svg {
+            max-height: 60px;
+        }
     </style>
 @endsection

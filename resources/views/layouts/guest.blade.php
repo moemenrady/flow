@@ -10,20 +10,29 @@
 
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <style>
+        input {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        input:focus {
+            transform: scale(1.02);
+        }
+    </style>
 </head>
 
 <body class="font-sans text-gray-800 antialiased">
     <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
         <h1
             style="
-    font-weight: bold;
-    font-size: 48px; 
-    background: linear-gradient(to left, #F8E0C1, #D9B1AB);
+    font-weight: 900;
+    font-size: 56px; 
+    background: linear-gradient(to right, #51141b, #8d5450);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    display: inline-block;
+    letter-spacing: -2px;
 ">
-            X Space
+            Flow
         </h1>
 
         <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg">

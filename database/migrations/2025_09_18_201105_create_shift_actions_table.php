@@ -37,7 +37,7 @@ return new class extends Migration
             $table->foreign('shift_id')->references('id')->on('shifts')->onDelete('cascade');
             $table->foreign('invoice_id')->references('id')->on('invoices')->onDelete('set null');
             $table->foreign('expense_draft_id')->references('id')->on('expense_drafts')->onDelete('set null');
-
+            $table->enum('payment_type', ['cash', 'digital'])->default('cash');
             // إضافة index سريع للبحث
             $table->index(['shift_id', 'action_type']);
         });

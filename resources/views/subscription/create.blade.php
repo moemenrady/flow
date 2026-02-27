@@ -52,6 +52,7 @@
                 <label for="plan-price">سعر الاشتراك</label>
                 <input type="text" id="plan-price" placeholder="سعر الاشتراك" class="input-box" readonly>
             </div>
+            <input type="hidden" name="payment_type" id="subscribe_payment_type" value="">
 
             <button type="submit" class="btn-submit">إتمام الاشتراك</button>
         </form>
@@ -124,337 +125,390 @@
     </script>
 
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script>
-(function($){
-  const CONFIG = {
-    searchInput: '#phone',
-    resultsContainer: '#phone-results',
-    nameField: '#name',
-    ajaxUrl: "{{ route('clients.search') }}",
-    ajaxMethod: 'GET',
-    ajaxDelay: 160,
-    nextFieldIfNoResults: '#name',
-    planSelect: '#plan-select',
-    formSelector: 'form[action="{{ route('clients.subscribe') }}"]',
-    ignoreInputsSelector: 'input, textarea, [contenteditable="true"]',
-    resultsItemClass: 'result-item',
-    noResultsHtml: '<div style="padding:8px; color:#999;">لا توجد نتائج</div>',
-    useAriaActiveDescendant: true,
-    resultIdPrefix: 'phone_result_'
-  };
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        (function($) {
+            const CONFIG = {
+                searchInput: '#phone',
+                resultsContainer: '#phone-results',
+                nameField: '#name',
+                ajaxUrl: "{{ route('clients.search') }}",
+                ajaxMethod: 'GET',
+                ajaxDelay: 160,
+                nextFieldIfNoResults: '#name',
+                planSelect: '#plan-select',
+                formSelector: 'form[action="{{ route('clients.subscribe') }}"]',
+                ignoreInputsSelector: 'input, textarea, [contenteditable="true"]',
+                resultsItemClass: 'result-item',
+                noResultsHtml: '<div style="padding:8px; color:#999;">لا توجد نتائج</div>',
+                useAriaActiveDescendant: true,
+                resultIdPrefix: 'phone_result_'
+            };
 
-  let state = {
-    currentResults: [],
-    highlightedIndex: -1,
-    searchDebounceTimer: null
-  };
+            let state = {
+                currentResults: [],
+                highlightedIndex: -1,
+                searchDebounceTimer: null
+            };
 
-  function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+            function escapeHtml(s) {
+                return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            }
 
-  function renderResults(items){
-    state.currentResults = items || [];
-    const $c = $(CONFIG.resultsContainer);
-    if (!state.currentResults.length){
-      state.highlightedIndex = -1;
-      $c.html(CONFIG.noResultsHtml).hide().show();
-      return;
-    }
-    let html = '';
-    state.currentResults.forEach((it,i)=>{
-      const id = CONFIG.resultIdPrefix + i;
-      html += `<div id="${id}" class="${CONFIG.resultsItemClass}" data-index="${i}" data-id="${escapeHtml(it.id)}" data-name="${escapeHtml(it.name||'')}" data-phone="${escapeHtml(it.phone||'')}"><span>${escapeHtml(it.name)}${it.phone ? ' - ' + escapeHtml(it.phone) : ''}</span></div>`;
-    });
-    $c.html(html).show();
-    if (state.highlightedIndex >= 0 && state.highlightedIndex < state.currentResults.length){
-      highlight(state.highlightedIndex, {scrollIntoView:true, keepFocusOnInput:true});
-    } else {
-      state.highlightedIndex = -1;
-      $(`${CONFIG.resultsContainer} .${CONFIG.resultsItemClass}`).removeClass('active').attr('aria-selected','false');
-      if (CONFIG.useAriaActiveDescendant) $(CONFIG.searchInput).removeAttr('aria-activedescendant');
-    }
-  }
+            function renderResults(items) {
+                state.currentResults = items || [];
+                const $c = $(CONFIG.resultsContainer);
+                if (!state.currentResults.length) {
+                    state.highlightedIndex = -1;
+                    $c.html(CONFIG.noResultsHtml).hide().show();
+                    return;
+                }
+                let html = '';
+                state.currentResults.forEach((it, i) => {
+                    const id = CONFIG.resultIdPrefix + i;
+                    html +=
+                        `<div id="${id}" class="${CONFIG.resultsItemClass}" data-index="${i}" data-id="${escapeHtml(it.id)}" data-name="${escapeHtml(it.name||'')}" data-phone="${escapeHtml(it.phone||'')}"><span>${escapeHtml(it.name)}${it.phone ? ' - ' + escapeHtml(it.phone) : ''}</span></div>`;
+                });
+                $c.html(html).show();
+                if (state.highlightedIndex >= 0 && state.highlightedIndex < state.currentResults.length) {
+                    highlight(state.highlightedIndex, {
+                        scrollIntoView: true,
+                        keepFocusOnInput: true
+                    });
+                } else {
+                    state.highlightedIndex = -1;
+                    $(`${CONFIG.resultsContainer} .${CONFIG.resultsItemClass}`).removeClass('active').attr(
+                        'aria-selected', 'false');
+                    if (CONFIG.useAriaActiveDescendant) $(CONFIG.searchInput).removeAttr('aria-activedescendant');
+                }
+            }
 
-  function clearResults(){
-    state.currentResults = [];
-    state.highlightedIndex = -1;
-    $(CONFIG.resultsContainer).hide().empty();
-    if (CONFIG.useAriaActiveDescendant) $(CONFIG.searchInput).removeAttr('aria-activedescendant');
-  }
+            function clearResults() {
+                state.currentResults = [];
+                state.highlightedIndex = -1;
+                $(CONFIG.resultsContainer).hide().empty();
+                if (CONFIG.useAriaActiveDescendant) $(CONFIG.searchInput).removeAttr('aria-activedescendant');
+            }
 
-  function highlight(index, opts = {scrollIntoView:true, keepFocusOnInput:true}){
-    const $items = $(`${CONFIG.resultsContainer} .${CONFIG.resultsItemClass}`);
-    $items.removeClass('active').attr('aria-selected','false');
-    if (index == null || index < 0 || index >= state.currentResults.length){
-      state.highlightedIndex = -1;
-      if (CONFIG.useAriaActiveDescendant) $(CONFIG.searchInput).removeAttr('aria-activedescendant');
-      return;
-    }
-    state.highlightedIndex = index;
-    const $el = $items.eq(index);
-    $el.addClass('active').attr('aria-selected','true');
-    if (CONFIG.useAriaActiveDescendant){
-      try{ $(CONFIG.searchInput).attr('aria-activedescendant', $el.attr('id')); }catch(e){}
-    }
-    if (opts.scrollIntoView){
-      const container = $(CONFIG.resultsContainer)[0];
-      if (container && $el.length){
-        const item = $el[0];
-        const cTop = container.scrollTop, cBottom = cTop + container.clientHeight;
-        const itTop = item.offsetTop, itBottom = itTop + item.offsetHeight;
-        if (itTop < cTop) container.scrollTop = itTop;
-        if (itBottom > cBottom) container.scrollTop = itBottom - container.clientHeight;
-      }
-    }
-    if (opts.keepFocusOnInput){
-      try{ $(CONFIG.searchInput).focus(); }catch(e){}
-    }
-  }
+            function highlight(index, opts = {
+                scrollIntoView: true,
+                keepFocusOnInput: true
+            }) {
+                const $items = $(`${CONFIG.resultsContainer} .${CONFIG.resultsItemClass}`);
+                $items.removeClass('active').attr('aria-selected', 'false');
+                if (index == null || index < 0 || index >= state.currentResults.length) {
+                    state.highlightedIndex = -1;
+                    if (CONFIG.useAriaActiveDescendant) $(CONFIG.searchInput).removeAttr('aria-activedescendant');
+                    return;
+                }
+                state.highlightedIndex = index;
+                const $el = $items.eq(index);
+                $el.addClass('active').attr('aria-selected', 'true');
+                if (CONFIG.useAriaActiveDescendant) {
+                    try {
+                        $(CONFIG.searchInput).attr('aria-activedescendant', $el.attr('id'));
+                    } catch (e) {}
+                }
+                if (opts.scrollIntoView) {
+                    const container = $(CONFIG.resultsContainer)[0];
+                    if (container && $el.length) {
+                        const item = $el[0];
+                        const cTop = container.scrollTop,
+                            cBottom = cTop + container.clientHeight;
+                        const itTop = item.offsetTop,
+                            itBottom = itTop + item.offsetHeight;
+                        if (itTop < cTop) container.scrollTop = itTop;
+                        if (itBottom > cBottom) container.scrollTop = itBottom - container.clientHeight;
+                    }
+                }
+                if (opts.keepFocusOnInput) {
+                    try {
+                        $(CONFIG.searchInput).focus();
+                    } catch (e) {}
+                }
+            }
 
-  function pickResult(idx){
-    const it = state.currentResults[idx];
-    if (!it) return false;
-    $(CONFIG.searchInput).val(it.phone || it.id || '');
-    if (CONFIG.nameField) $(CONFIG.nameField).val(it.name || '');
-    clearResults();
-    try{ $(CONFIG.nameField).focus(); }catch(e){}
-    return true;
-  }
+            function pickResult(idx) {
+                const it = state.currentResults[idx];
+                if (!it) return false;
+                $(CONFIG.searchInput).val(it.phone || it.id || '');
+                if (CONFIG.nameField) $(CONFIG.nameField).val(it.name || '');
+                clearResults();
+                try {
+                    $(CONFIG.nameField).focus();
+                } catch (e) {}
+                return true;
+            }
 
-  function doSearch(query){
-    if (!query || !query.trim()){ clearResults(); return; }
-    if (!CONFIG.ajaxUrl) return;
-    if (state.searchDebounceTimer) clearTimeout(state.searchDebounceTimer);
-    state.searchDebounceTimer = setTimeout(()=>{
-      $.ajax({
-        url: CONFIG.ajaxUrl,
-        type: CONFIG.ajaxMethod,
-        data: { query: query },
-        success: function(data){ renderResults(Array.isArray(data) ? data : []); },
-        error: function(){ $(CONFIG.resultsContainer).html('<div style="padding:8px; color:#999;">خطأ في البحث</div>').show(); state.currentResults=[]; state.highlightedIndex=-1; }
-      });
-    }, CONFIG.ajaxDelay);
-  }
+            function doSearch(query) {
+                if (!query || !query.trim()) {
+                    clearResults();
+                    return;
+                }
+                if (!CONFIG.ajaxUrl) return;
+                if (state.searchDebounceTimer) clearTimeout(state.searchDebounceTimer);
+                state.searchDebounceTimer = setTimeout(() => {
+                    $.ajax({
+                        url: CONFIG.ajaxUrl,
+                        type: CONFIG.ajaxMethod,
+                        data: {
+                            query: query
+                        },
+                        success: function(data) {
+                            renderResults(Array.isArray(data) ? data : []);
+                        },
+                        error: function() {
+                            $(CONFIG.resultsContainer).html(
+                                    '<div style="padding:8px; color:#999;">خطأ في البحث</div>')
+                                .show();
+                            state.currentResults = [];
+                            state.highlightedIndex = -1;
+                        }
+                    });
+                }, CONFIG.ajaxDelay);
+            }
 
-  function changePlanBy(delta){
-    const $sel = $(CONFIG.planSelect);
-    if (!$sel.length) return false;
-    const sel = $sel.get(0);
-    const options = sel.options;
-    if (!options || options.length === 0) return false;
-    let idx = sel.selectedIndex;
-    if (idx < 0) idx = 0;
-    idx = Math.max(0, Math.min(options.length - 1, idx + delta));
-    sel.selectedIndex = idx;
-    $sel.trigger('change');
-    try{ sel.focus(); }catch(e){}
-    return true;
-  }
+            function changePlanBy(delta) {
+                const $sel = $(CONFIG.planSelect);
+                if (!$sel.length) return false;
+                const sel = $sel.get(0);
+                const options = sel.options;
+                if (!options || options.length === 0) return false;
+                let idx = sel.selectedIndex;
+                if (idx < 0) idx = 0;
+                idx = Math.max(0, Math.min(options.length - 1, idx + delta));
+                sel.selectedIndex = idx;
+                $sel.trigger('change');
+                try {
+                    sel.focus();
+                } catch (e) {}
+                return true;
+            }
 
-  function trySubmitFormIfValid(){
-    const $form = $(CONFIG.formSelector).first();
-    if (!$form.length) return false;
-    const formEl = $form.get(0);
-    try{
-      if (formEl.checkValidity && formEl.checkValidity()){
-        $form.submit();
-        return true;
-      }
-    }catch(e){}
-    return false;
-  }
+            function trySubmitFormIfValid() {
+                const $form = $(CONFIG.formSelector).first();
+                if (!$form.length) return false;
+                const formEl = $form.get(0);
+                try {
+                    if (formEl.checkValidity && formEl.checkValidity()) {
+                        $form.submit();
+                        return true;
+                    }
+                } catch (e) {}
+                return false;
+            }
 
-  function injectCharToPhone(ch){
-    const $inp = $(CONFIG.searchInput);
-    const inputEl = $inp.get(0);
-    if (!inputEl) return false;
-    try{
-      inputEl.focus();
-      const start = (typeof inputEl.selectionStart === 'number') ? inputEl.selectionStart : inputEl.value.length;
-      const end = (typeof inputEl.selectionEnd === 'number') ? inputEl.selectionEnd : start;
-      const val = inputEl.value || '';
-      const newVal = val.slice(0,start) + ch + val.slice(end);
-      inputEl.value = newVal;
-      const caret = start + ch.length;
-      inputEl.setSelectionRange(caret, caret);
-      $inp.trigger('input');
-      return true;
-    }catch(err){
-      $inp.val(($inp.val()||'') + ch).trigger('input');
-      $inp.focus();
-      return true;
-    }
-  }
+            function injectCharToPhone(ch) {
+                const $inp = $(CONFIG.searchInput);
+                const inputEl = $inp.get(0);
+                if (!inputEl) return false;
+                try {
+                    inputEl.focus();
+                    const start = (typeof inputEl.selectionStart === 'number') ? inputEl.selectionStart : inputEl.value
+                        .length;
+                    const end = (typeof inputEl.selectionEnd === 'number') ? inputEl.selectionEnd : start;
+                    const val = inputEl.value || '';
+                    const newVal = val.slice(0, start) + ch + val.slice(end);
+                    inputEl.value = newVal;
+                    const caret = start + ch.length;
+                    inputEl.setSelectionRange(caret, caret);
+                    $inp.trigger('input');
+                    return true;
+                } catch (err) {
+                    $inp.val(($inp.val() || '') + ch).trigger('input');
+                    $inp.focus();
+                    return true;
+                }
+            }
 
-  function showToast(msg, ms = 900){
-    const ex = document.querySelector('.__shortcuts_toast'); if (ex) ex.remove();
-    const d = document.createElement('div'); d.className = '__shortcuts_toast'; d.textContent = msg; document.body.appendChild(d);
-    requestAnimationFrame(()=> d.classList.add('show'));
-    setTimeout(()=> { d.classList.remove('show'); setTimeout(()=> d.remove(),160); }, ms);
-  }
+            function showToast(msg, ms = 900) {
+                const ex = document.querySelector('.__shortcuts_toast');
+                if (ex) ex.remove();
+                const d = document.createElement('div');
+                d.className = '__shortcuts_toast';
+                d.textContent = msg;
+                document.body.appendChild(d);
+                requestAnimationFrame(() => d.classList.add('show'));
+                setTimeout(() => {
+                    d.classList.remove('show');
+                    setTimeout(() => d.remove(), 160);
+                }, ms);
+            }
 
-  // utility: get submit button element
-  function getSubmitBtn(){
-    const $form = $(CONFIG.formSelector).first();
-    if (!$form.length) return null;
-    const $btn = $form.find('[type="submit"]').first();
-    return $btn.length ? $btn : null;
-  }
+            // utility: get submit button element
+            function getSubmitBtn() {
+                const $form = $(CONFIG.formSelector).first();
+                if (!$form.length) return null;
+                const $btn = $form.find('[type="submit"]').first();
+                return $btn.length ? $btn : null;
+            }
 
-  // ---- ready ----
-  $(function(){
-    const $phone = $(CONFIG.searchInput);
-    const $results = $(CONFIG.resultsContainer);
-    const $plan = $(CONFIG.planSelect);
-    const $name = $(CONFIG.nameField);
-    const $submitBtn = getSubmitBtn();
+            // ---- ready ----
+            $(function() {
+                const $phone = $(CONFIG.searchInput);
+                const $results = $(CONFIG.resultsContainer);
+                const $plan = $(CONFIG.planSelect);
+                const $name = $(CONFIG.nameField);
+                const $submitBtn = getSubmitBtn();
 
-    $results.hide();
+                $results.hide();
 
-    // input typing/search
-    $(document).on('input', CONFIG.searchInput, function(){
-      const q = $(this).val() || '';
-      if (CONFIG.nameField) $(CONFIG.nameField).val('');
-      if (q.trim().length >= 1) doSearch(q.trim());
-      else clearResults();
-    });
+                // input typing/search
+                $(document).on('input', CONFIG.searchInput, function() {
+                    const q = $(this).val() || '';
+                    if (CONFIG.nameField) $(CONFIG.nameField).val('');
+                    if (q.trim().length >= 1) doSearch(q.trim());
+                    else clearResults();
+                });
 
-    // click result
-    $(document).on('click', `${CONFIG.resultsContainer} .${CONFIG.resultsItemClass}`, function(){
-      const idx = parseInt($(this).data('index'));
-      if (!isNaN(idx)) pickResult(idx);
-    });
+                // click result
+                $(document).on('click', `${CONFIG.resultsContainer} .${CONFIG.resultsItemClass}`, function() {
+                    const idx = parseInt($(this).data('index'));
+                    if (!isNaN(idx)) pickResult(idx);
+                });
 
-    // keyboard when focus in phone -> navigate results
-    $(document).on('keydown', CONFIG.searchInput, function(e){
-      const key = e.key;
-      if ((key === 'ArrowDown' || key === 'ArrowUp') && state.currentResults.length > 0){
-        e.preventDefault();
-        if (key === 'ArrowDown'){
-          if (state.highlightedIndex < state.currentResults.length - 1) highlight(state.highlightedIndex + 1);
-          else highlight(state.currentResults.length - 1);
-        } else {
-          if (state.highlightedIndex > 0) highlight(state.highlightedIndex - 1);
-          else highlight(0);
+                // keyboard when focus in phone -> navigate results
+                $(document).on('keydown', CONFIG.searchInput, function(e) {
+                    const key = e.key;
+                    if ((key === 'ArrowDown' || key === 'ArrowUp') && state.currentResults.length > 0) {
+                        e.preventDefault();
+                        if (key === 'ArrowDown') {
+                            if (state.highlightedIndex < state.currentResults.length - 1) highlight(
+                                state.highlightedIndex + 1);
+                            else highlight(state.currentResults.length - 1);
+                        } else {
+                            if (state.highlightedIndex > 0) highlight(state.highlightedIndex - 1);
+                            else highlight(0);
+                        }
+                        return;
+                    }
+
+                    if (key === 'Enter') {
+                        if (state.currentResults.length > 0) {
+                            e.preventDefault();
+                            const pickIdx = state.highlightedIndex >= 0 ? state.highlightedIndex : 0;
+                            if (pickResult(pickIdx)) return;
+                        }
+                        // no results -> go to name
+                        if (!state.currentResults.length) {
+                            const next = CONFIG.nextFieldIfNoResults;
+                            if (next) {
+                                e.preventDefault();
+                                $(next).focus().select();
+                                return;
+                            }
+                        }
+                    }
+                });
+
+                // when focus on name -> Enter moves to plan select
+                $(document).on('keydown', CONFIG.nameField, function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        try {
+                            $plan.focus();
+                            // if you want to open select dropdown in some browsers, dispatch mousedown
+                            try {
+                                $plan.get(0).dispatchEvent(new MouseEvent('mousedown', {
+                                    bubbles: true
+                                }));
+                            } catch (e) {}
+                        } catch (e) {}
+                    }
+                });
+
+                // when focus on plan-select -> Enter confirms plan and focuses submit button
+                $(document).on('keydown', CONFIG.planSelect, function(e) {
+                    // if user types a character while on select -> redirect typing to phone
+                    const key = e.key || '';
+                    if (key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                        // move typing to phone input
+                        e.preventDefault();
+                        injectCharToPhone(key);
+                        return;
+                    }
+
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        // ensure selection remains, then focus submit button
+                        const $btn = getSubmitBtn();
+                        if ($btn) {
+                            try {
+                                $btn.focus();
+                                showToast('الخطة تم اختيارها — اضغط Enter لإتمام الاشتراك', 1000);
+                            } catch (e) {}
+                        } else {
+                            showToast('تم اختيار الخطة', 700);
+                        }
+                    }
+                });
+
+              
+
+                // change plan updates price
+                $plan.on('change', function() {
+                    const price = $(this).find(':selected').data('price') || '';
+                    $('#plan-price').val(price ? (price + " ج.م") : '');
+                });
+
+                // click outside closes results
+                $(document).on('click', function(e) {
+                    if (!$(e.target).closest(CONFIG.resultsContainer + ', ' + CONFIG.searchInput)
+                        .length) {
+                        clearResults();
+                    }
+                });
+
+             
+                // init plan price if preselected
+                const $selInit = $plan;
+                if ($selInit.length && $selInit.val()) {
+                    const p = $selInit.find(':selected').data('price') || '';
+                    if (p) $('#plan-price').val(p + " ج.م");
+                }
+            });
+        })(jQuery);
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const subscribeForm = document.querySelector("form[action='{{ route('clients.subscribe') }}']");
+
+            subscribeForm.addEventListener("submit", function(e) {
+                e.preventDefault(); // وقف الإرسال الأول
+
+                // افتح مودال اختيار الدفع
+                const modal = new bootstrap.Modal(document.getElementById("subscribePaymentModal"));
+                modal.show();
+            });
+        });
+
+        // اختيار طريقة الدفع
+        function chooseSubscribePayment(type) {
+            document.getElementById("subscribe_payment_type").value = type;
+
+            // إرسال الفورم بعد الاختيار
+            document.querySelector("form[action='{{ route('clients.subscribe') }}']").submit();
         }
-        return;
-      }
+    </script>
 
-      if (key === 'Enter'){
-        if (state.currentResults.length > 0){
-          e.preventDefault();
-          const pickIdx = state.highlightedIndex >= 0 ? state.highlightedIndex : 0;
-          if (pickResult(pickIdx)) return;
-        }
-        // no results -> go to name
-        if (!state.currentResults.length){
-          const next = CONFIG.nextFieldIfNoResults;
-          if (next){ e.preventDefault(); $(next).focus().select(); return; }
-        }
-      }
-    });
+    <!-- Modal الدفع للاشتراك -->
+    <div class="modal fade" id="subscribePaymentModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
 
-    // when focus on name -> Enter moves to plan select
-    $(document).on('keydown', CONFIG.nameField, function(e){
-      if (e.key === 'Enter'){
-        e.preventDefault();
-        try {
-          $plan.focus();
-          // if you want to open select dropdown in some browsers, dispatch mousedown
-          try { $plan.get(0).dispatchEvent(new MouseEvent('mousedown', {bubbles:true})); } catch(e){}
-        } catch(e){}
-      }
-    });
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">اختر طريقة الدفع</h5>
+                </div>
 
-    // when focus on plan-select -> Enter confirms plan and focuses submit button
-    $(document).on('keydown', CONFIG.planSelect, function(e){
-      // if user types a character while on select -> redirect typing to phone
-      const key = e.key || '';
-      if (key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey){
-        // move typing to phone input
-        e.preventDefault();
-        injectCharToPhone(key);
-        return;
-      }
+                <div class="modal-body text-center">
+                    <button class="btn btn-success w-100 mb-2" onclick="chooseSubscribePayment('cash')">💵 كاش</button>
+                    <button class="btn btn-primary w-100" onclick="chooseSubscribePayment('digital')">💳 محفظة</button>
+                </div>
 
-      if (e.key === 'Enter'){
-        e.preventDefault();
-        // ensure selection remains, then focus submit button
-        const $btn = getSubmitBtn();
-        if ($btn) {
-          try { $btn.focus(); showToast('الخطة تم اختيارها — اضغط Enter لإتمام الاشتراك', 1000); } catch(e){}
-        } else {
-          showToast('تم اختيار الخطة',700);
-        }
-      }
-    });
+            </div>
+        </div>
+    </div>
 
-    // global keydown: arrows when not focused inside inputs -> change plan-select
-    $(document).on('keydown', function(e){
-      const target = e.target;
-      const isEditable = target && (target.matches && target.matches(CONFIG.ignoreInputsSelector));
-      // special: if focus is on the plan-select and user types printable char, handled in planSelect handler above
-      if (isEditable){
-        // if focus is on select but it's our plan-select, let plan handler handle chars
-        return;
-      }
-
-      // arrows -> change plan
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){
-        const delta = e.key === 'ArrowDown' ? 1 : -1;
-        const ok = changePlanBy(delta);
-        if (ok){ e.preventDefault(); return; }
-      }
-
-      // Enter -> if form valid submit
-      if (e.key === 'Enter'){
-        const submitted = trySubmitFormIfValid();
-        if (submitted) e.preventDefault();
-        return;
-      }
-
-      // printable -> inject to phone (global typing)
-      const key = e.key || '';
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (key.length === 1){
-        const code = key.charCodeAt(0);
-        if (code >= 32){
-          const ok = injectCharToPhone(key);
-          if (ok) { e.preventDefault(); return; }
-        }
-      }
-    });
-
-    // change plan updates price
-    $plan.on('change', function(){
-      const price = $(this).find(':selected').data('price') || '';
-      $('#plan-price').val(price ? (price + " ج.م") : '');
-    });
-
-    // click outside closes results
-    $(document).on('click', function(e){
-      if (!$(e.target).closest(CONFIG.resultsContainer + ', ' + CONFIG.searchInput).length){
-        clearResults();
-      }
-    });
-
-    // backup: Enter on highlighted result triggers pick
-    $(document).on('keydown', function(e){
-      if (e.key === 'Enter' && state.highlightedIndex >= 0 && $(document.activeElement).is(CONFIG.searchInput)){
-        e.preventDefault();
-        pickResult(state.highlightedIndex);
-      }
-    });
-
-    // init plan price if preselected
-    const $selInit = $plan;
-    if ($selInit.length && $selInit.val()){
-      const p = $selInit.find(':selected').data('price') || '';
-      if (p) $('#plan-price').val(p + " ج.م");
-    }
-  });
-})(jQuery);
-</script>
 @endsection
 @section('style')
     <style>
@@ -562,7 +616,7 @@
             text-overflow: ellipsis;
             max-width: calc(100% - 12px);
         }
-    
+
         .dropdown {
             width: 100%;
             padding: 12px;

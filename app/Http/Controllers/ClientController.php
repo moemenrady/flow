@@ -70,7 +70,9 @@ class ClientController extends Controller
     $active_attendees_in_bookings = Booking::where('status', 'in_progress')
       ->sum('attendees');
     $active_clients_count =$active_subscribers_count + $active_attendees_in_bookings +$active_session_persons ;
-    return view('clients.index', compact("clients","active_clients_count", "count_client", ));
+    $specializations = Specialization::all();
+  $educationStages = EducationStage::all();
+    return view('clients.index', compact("clients","active_clients_count", "count_client","specializations","educationStages" ));
 
   }
 
@@ -82,35 +84,78 @@ class ClientController extends Controller
     ]);
   }
   
-  public function searchId(Request $request)
-  {
+public function searchId(Request $request)
+{
     $query = trim($request->get('query', ''));
 
     if ($query === '' || !ctype_digit($query)) {
-      return response()->json([], 200, ['Content-Type' => 'application/json; charset=utf-8']);
+        return response()->json([], 200, ['Content-Type' => 'application/json; charset=utf-8']);
     }
 
     $results = Client::where('id', $query)
-      ->select(['id', 'name', 'phone', 'age', 'specialization_id', 'education_stage_id'])
-      ->get();
+        ->select(['id', 'name', 'phone', 'age', 'specialization_id', 'education_stage_id'])
+        ->get();
 
-    // هُنا نعيد JSON مع JSON_UNESCAPED_UNICODE ليُطبع العربي بدون \uXXXX
+    // تحقق من وجود جلسة active مباشرة في جدول Sation
+    $results = $results->map(function ($client) {
+        $activeSession = \App\Models\Sation::where('client_id', $client->id)
+            ->where('status', 'active')
+            ->first();
+
+        $client->active_session_id = $activeSession ? $activeSession->id : null;
+
+        return $client;
+    });
+
     return response()->json($results, 200, ['Content-Type' => 'application/json; charset=utf-8'], JSON_UNESCAPED_UNICODE);
-  }
-  public function search(Request $request)
-  {
+}
+
+public function search(Request $request)
+{
     $query = $request->get('query');
+    $specialization_id = $request->get('specialization_id');
+    $education_stage_id = $request->get('education_stage_id');
+    $age_from = $request->get('age_from');
+    $age_to = $request->get('age_to');
 
-    $results = Client::where('phone', 'LIKE', "%{$query}%")
-      ->orWhere('name', 'LIKE', "%{$query}%")
-
-      ->select('id', 'name', 'phone', 'age', 'specialization_id', 'education_stage_id') // هات اللي محتاجه
-
-      ->get();
+    $results = Client::with(['specialization', 'educationStage', 'clientVisit', 'invoices'])
+        ->when($query, function($q) use ($query) {
+            $q->where('name', 'LIKE', "%{$query}%")
+              ->orWhere('phone', 'LIKE', "%{$query}%")
+              ->orWhere('id', $query);
+        })
+        ->when($specialization_id, function($q) use ($specialization_id) {
+            $q->where('specialization_id', $specialization_id);
+        })
+        ->when($education_stage_id, function($q) use ($education_stage_id) {
+            $q->where('education_stage_id', $education_stage_id);
+        })
+        ->when($age_from, function($q) use ($age_from) {
+            $q->where('age', '>=', $age_from);
+        })
+        ->when($age_to, function($q) use ($age_to) {
+            $q->where('age', '<=', $age_to);
+        })
+        ->select('id', 'name', 'phone', 'age', 'specialization_id', 'education_stage_id', 'is_active')
+        ->get()
+        ->map(function($client) {
+            return [
+                'id' => $client->id,
+                'name' => $client->name,
+                'phone' => $client->phone,
+                'age' => $client->age,
+                'specialization' => $client->specialization->name ?? '-',
+                'education_stage' => $client->educationStage->name ?? '-',
+                'is_active' => $client->is_active ? 'نشط' : 'غير نشط',
+                'visits_count' => $client->clientVisit->count(),
+                'invoices_count' => $client->invoices->count(),
+            ];
+        });
 
     return response()->json($results);
-  }
-  
+}
+
+
   public function edit(Client $client)
   {
     $specializations = Specialization::orderBy('name')->get();

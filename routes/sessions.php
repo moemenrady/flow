@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\SessionPurchaseController;
 use App\Http\Controllers\SationController;
+use App\Http\Controllers\SetionNotAddedController;
+use Illuminate\Support\Facades\Route;
 
 
 Route::middleware('auth')->group(function () {
@@ -13,6 +15,7 @@ Route::middleware('auth')->group(function () {
 
   Route::post('/start_session', [SationController::class, 'store'])->name("session.store")->middleware("auth");
   Route::post('/start_session', [SationController::class, 'storeFromManager'])->name("session.store.manager")->middleware("auth");
+  Route::post('/session_justStart', [SationController::class, 'justStart'])->name("session.justStart")->middleware("auth");
 
   Route::get('/sessions', [SationController::class, 'index'])->name('session.index-manager')->middleware("auth");
   Route::put('/sessions/{session}/reduce-minutes', [SationController::class, 'reduceMinutes'])
@@ -40,6 +43,7 @@ Route::middleware('auth')->group(function () {
   Route::get('/sessions/search-ajax', [SationController::class, 'searchAjax'])->name('sessions.searchAjax');
 
   Route::post('/sessions/split', [SationController::class, 'split'])->name('sessions.split');
+  Route::post('/new-session/added', [SetionNotAddedController::class, 'store'])->name('new-session.store');
 
 });
 

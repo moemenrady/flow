@@ -193,9 +193,8 @@
                 $.ajax({
                     url: "{{ route('products.search') }}",
                     type: "GET",
-                    data: {
-                        q: query
-                    },
+                  data: { query: query }
+,
                     success: function(data) {
                         let html = '';
                         if (data.length > 0) {

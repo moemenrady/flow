@@ -268,33 +268,38 @@
 
             </thead>
 
-          <tbody id="productTable">
-    @foreach ($products as $product)
-        <tr data-href="{{ route('products.show', $product->id) }}" style="cursor: pointer;">
-            <td data-label="المعرف">{{ $product->id }}</td>
-            <td data-label="اسم المنتج">{{ $product->name }}</td>
-            <td data-label="السعر">{{ $product->price }}</td>
-            <td data-label="التكلفة">{{ $product->cost }}</td>
-            <td data-label="العدد">{{ $product->quantity }}</td>
-        </tr>
-    @endforeach
-</tbody>
+            <tbody id="productTable">
+                @foreach ($products as $product)
+                    <tr data-href="{{ route('products.show', $product->id) }}" style="cursor: pointer;">
+                        <td data-label="المعرف">{{ $product->id }}</td>
+                        <td data-label="اسم المنتج">{{ $product->name }}</td>
+                        <td data-label="السعر">{{ $product->price }}</td>
+                        <td data-label="التكلفة">{{ $product->cost }}</td>
+                        <td data-label="العدد">{{ $product->quantity }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
 
         </table>
     </div>
-<script>
-    // جعل الصف قابل للنقر لعرض تفاصيل المنتج
-    document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('#productTable tr').forEach(row => {
-            row.addEventListener('click', function () {
-                const url = this.dataset.href;
+    <script>
+        // جعل الصف قابل للنقر لعرض تفاصيل المنتج
+        document.addEventListener('DOMContentLoaded', function() {
+
+            const tbody = document.getElementById('productTable');
+
+            tbody.addEventListener('click', function(e) {
+                const row = e.target.closest('tr');
+                if (!row) return;
+
+                const url = row.dataset.href;
                 if (url) {
                     window.location.href = url;
                 }
             });
+
         });
-    });
-</script>
+    </script>
 
     <script>
         // البحث AJAX
@@ -310,14 +315,14 @@
                     if (data.length > 0) {
                         data.forEach(item => {
                             tbody.innerHTML += `
-                        <tr>
-                            <td data-label="المعرف">${item.id}</td>
-                            <td data-label="اسم المنتج">${item.name}</td>
-                            <td data-label="السعر">${item.price}</td>
-                            <td data-label="التكلفة">${item.cost}</td>
-                            <td data-label="العدد">${item.quantity}</td>
-                        </tr>
-                    `;
+                                <tr data-href="/products/${item.id}" style="cursor:pointer;">
+                                    <td data-label="المعرف">${item.id}</td>
+                                    <td data-label="اسم المنتج">${item.name}</td>
+                                    <td data-label="السعر">${item.price}</td>
+                                    <td data-label="التكلفة">${item.cost}</td>
+                                    <td data-label="العدد">${item.quantity}</td>
+                                </tr>
+                            `;
                         });
                     }
                 });

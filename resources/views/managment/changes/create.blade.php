@@ -2,40 +2,44 @@
     <!-- Main content -->
     <main class="container py-5">
         <div class="row g-4 justify-content-center">
-            <div class="col-12 col-sm-6 col-lg-4">
+            {{-- <div class="col-12 col-sm-6 col-lg-4">
                 <form action="{{ route('halls.create') }}" method="GET"> <button type="submit" class="custom-card w-100">
                         القاعات
                     </button> </form>
-            </div>
+            </div> --}}
             <div class="col-12 col-sm-6 col-lg-4">
                 <form action="{{ route('records.create') }}" method="GET"> <button type="submit" class="custom-card w-100">
                         سعر الساعة الاساسية
                     </button> </form>
             </div>
             <div class="col-12 col-sm-6 col-lg-4">
-                <form action="{{ route('important-products.create') }}" method="GET"> <button type="submit" class="custom-card w-100">
+                <form action="{{ route('important-products.create') }}" method="GET"> <button type="submit"
+                        class="custom-card w-100">
                         المنتجات المهمه
                     </button> </form>
             </div>
 
 
 
-<div class="col-12 col-sm-6 col-lg-4">
-                <form action="{{ route('expense-type.create') }}" method="GET"> <button type="submit" class="custom-card w-100">
+            <div class="col-12 col-sm-6 col-lg-4">
+                <form action="{{ route('expense-type.create') }}" method="GET"> <button type="submit"
+                        class="custom-card w-100">
                         انواع المصروف
                     </button> </form>
             </div>
             <div class="col-12 col-sm-6 col-lg-4">
-                <form action="{{ route('full-day-hours.create') }}" method="GET"> <button type="submit" class="custom-card w-100">
+                <form action="{{ route('full-day-hours.create') }}" method="GET"> <button type="submit"
+                        class="custom-card w-100">
                         عدد ساعات اليوم الكامل
                     </button> </form>
             </div>
             <div class="col-12 col-sm-6 col-lg-4">
-                <form action="{{ route('subscription-plan.create') }}" method="GET"> <button type="submit" class="custom-card w-100">
+                <form action="{{ route('subscription-plan.create') }}" method="GET"> <button type="submit"
+                        class="custom-card w-100">
                         خطط الاشتراك
                     </button> </form>
             </div>
-              <div class="col-12 col-sm-6 col-lg-4">
+            <div class="col-12 col-sm-6 col-lg-4">
                 <form action="{{ route('users.create') }}" method="GET"> <button type="submit" class="custom-card w-100">
                         حسابات النظام
                     </button> </form>

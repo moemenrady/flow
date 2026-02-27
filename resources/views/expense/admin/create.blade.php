@@ -72,7 +72,10 @@
                     <input type="number" step="0.01" name="amount" id="amount" placeholder="أدخل قيمة المصروف"
                         required>
                 </div>
-
+                <div class="form-group">
+                    <label for="expense_time">وقت المصروف (اختياري)</label>
+                    <input type="datetime-local" name="expense_time" id="expense_time" class="styled-select">
+                </div>
                 <div class="form-group">
                     <label for="note">الوصف (اختياري)</label>
                     <textarea name="note" id="note" rows="3" placeholder="اكتب ملاحظة..."></textarea>

@@ -1,4 +1,4 @@
-@extends('layouts.app_page_admin')
+{{-- @extends('layouts.app_page_admin')
 
 @section('content')
     <div class="hall-wrapper">
@@ -259,4 +259,4 @@
             .card-content { padding:12px; }
         }
     </style>
-@endsection
+@endsection --}}

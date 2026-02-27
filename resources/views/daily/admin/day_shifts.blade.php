@@ -35,8 +35,15 @@
             <div style="display:flex; gap:18px; flex-wrap:wrap; justify-content:space-between; align-items:center;">
                 <div style="flex:1; min-width:200px;">
                     <h4 style="margin:0 0 8px;">💰 الإيراد الكلي</h4>
-                    <div style="font-size:20px; font-weight:700;">{{ number_format($total_income, 2) }} ج.م</div>
+
+                    <div style="font-size:20px; font-weight:700;">
+                        {{ number_format($total_income, 2) }} ج.م
+                        <small style="font-size:14px; color:#555; font-weight:400;">
+                            (كاش: {{ number_format($totalCash, 2) }} - محفظة: {{ number_format($totalDigital, 2) }})
+                        </small>
+                    </div>
                 </div>
+
                 <div style="flex:1; min-width:200px;">
                     <h4 style="margin:0 0 8px;">🧾 المصروف الكلي</h4>
                     <div style="font-size:20px; font-weight:700;">{{ number_format($total_expense, 2) }} ج.م</div>
@@ -132,14 +139,29 @@
                                     @endif
                                 </td>
 
-                                <td data-label="بداية">{{ \Carbon\Carbon::parse($shift->created_at)->format('Y-m-d H:i') }}
+                                <td data-label="بداية">
+                                    {{ \Carbon\Carbon::parse($shift->created_at)->format('Y-m-d h:i A') }}
                                 </td>
                                 <td data-label="نهاية">
-                                    {{ $shift->updated_at ? \Carbon\Carbon::parse($shift->updated_at)->format('Y-m-d H:i') : '—' }}
+                                    {{ $shift->updated_at ? \Carbon\Carbon::parse($shift->updated_at)->format('Y-m-d h:i A') : '—' }}
                                 </td>
                                 <td data-label="المدة">{{ $durationText }}</td>
                                 <td data-label="الإيراد">{{ number_format($shift->total_amount, 2) }}</td>
-                                <td data-label="المصروف">{{ number_format($shift->total_expense, 2) }}</td>
+                                <td data-label="المصروف">
+                                    @if (!$isAdmin)
+                                        {{-- موظف → زرار outline أحمر --}}
+                                        <a href="{{ route('admin_draft.create') }}"
+                                            class="btn btn-sm fw-bold btn-outline-danger">
+                                            {{ number_format($shift->total_expense, 2) }} ج.م
+                                        </a>
+                                    @else
+                                        {{-- أدمن → نص فقط --}}
+                                        {{ number_format($shift->total_expense, 2) }} ج.م
+                                    @endif
+                                </td>
+
+
+
                                 <td data-label="الصافي">{{ number_format($net, 2) }}</td>
                                 <td data-label="تفاصيل">
                                     <a href="{{ route('shift.show', $shift->id) }}" class="btn-details"

@@ -7,7 +7,8 @@ use App\Models\Product;
 class SaleProccess extends Controller
 {
     public function create(){
-      return view("sale_proccess.create",);
+      $products=Product::all();
+      return view("sale_proccess.create",compact("products"));
     }
 
 

@@ -10,8 +10,37 @@ use Illuminate\Support\Carbon;
 
 class ShiftController extends Controller
 {
-public function show(Shift $shift)
-{
+  public function deposit(Request $request, $shiftId)
+  {
+    $shift = Shift::findOrFail($shiftId);
+
+    // 1️⃣ تأكد إن الشيفت مقفول
+    if ($shift->end_time === null) {
+      return back()->with('error', 'لا يمكن توريد شيفت لم يتم إغلاقه');
+    }
+
+    // 2️⃣ تأكد إنه متوردش قبل كده
+    if ($shift->deposited_at !== null) {
+      return back()->with('error', 'تم توريد هذا الشيفت بالفعل');
+    }
+
+    // 3️⃣ حساب مبلغ التوريد
+    $depositAmount = $shift->total_amount - $shift->total_expense;
+
+    if ($depositAmount < 0) {
+      return back()->with('error', 'المصروفات أكبر من الإيرادات');
+    }
+
+    // 4️⃣ حفظ بيانات التوريد
+    $shift->update([
+      'deposited_amount' => $depositAmount,
+      'deposited_at' => now(),
+    ]);
+
+    return back()->with('success', 'تم توريد مبلغ ' . $depositAmount . ' بنجاح');
+  }
+  public function show(Shift $shift)
+  {
     $shift->load(['user', 'actions.invoice', 'actions.expenseDraft']);
 
     // حسابات مختصرة
@@ -23,7 +52,7 @@ public function show(Shift $shift)
     $actions = $shift->actions()->orderBy('created_at', 'asc')->get();
 
     return view('daily.user_shifts.show', compact('shift', 'actions', 'totalIncome', 'totalExpense', 'totalNet'));
-}
+  }
 
 
   public function index(Request $request)
@@ -118,13 +147,51 @@ public function show(Shift $shift)
   public function create()
   {
     $user = Auth::user();
+    $today = Carbon::today();
+
+    // 🔹 الشيفت المفتوح (لو موجود)
     $shift = Shift::with('actions')
       ->where('user_id', $user->id)
       ->whereNull('end_time')
       ->first();
 
-    return view('daily.user_shifts.create', compact('shift'));
+    // 🔹 آخر شيفت اتقفل النهارده وقيمته > 0
+    $lastClosedShiftToday = Shift::
+      whereNotNull('end_time')
+      ->whereDate('start_time', $today)
+      ->whereDate('end_time', $today)
+      ->where('deposited_amount', '>', 0) // فقط المبالغ > 0
+      ->orderByDesc('end_time')
+      ->first();
+
+    // 🔹 قيمة التوريد للشيفت ده (0 لو مفيش شيفت أو كل الشيفتات صفر)
+    $lastDepositedAmount = $lastClosedShiftToday->deposited_amount ?? 0;
+
+    if ($shift) {
+      $totalCash = ShiftAction::where('shift_id', $shift->id)
+        ->where('payment_type', 'cash')
+        ->sum('amount');
+
+      $totalDigital = ShiftAction::where('shift_id', $shift->id)
+        ->where('payment_type', 'digital')
+        ->sum('amount');
+
+      return view('daily.user_shifts.create', compact(
+        'shift',
+        'totalCash',
+        'totalDigital',
+        'lastDepositedAmount',
+        'lastClosedShiftToday'
+      ));
+    }
+
+    return view('daily.user_shifts.create', compact(
+      'shift',
+      'lastDepositedAmount',
+      'lastClosedShiftToday'
+    ));
   }
+
 
   public function startFromLogin(Request $request)
   {
@@ -169,7 +236,7 @@ public function show(Shift $shift)
       ->first();
 
     if ($openShift) {
-      
+
       return redirect()->route('main.create');
     }
 
@@ -178,7 +245,7 @@ public function show(Shift $shift)
   }
 
   // إنهاء الشيفت
-  public function endShift()
+  public function endShift(Request $request)
   {
     $user = Auth::user();
 
@@ -187,18 +254,14 @@ public function show(Shift $shift)
       ->first();
 
     if (!$shift) {
-      
+
       return redirect()->back()->with('error', 'مفيش شيفت مفتوح حاليا');
     }
 
-
-
-
     // تحديث الشيفت
     $shift->update([
-
-      'end_time' => now()
-
+      'end_time' => now(),
+      'deposited_amount' => $request->safe_amount ?? 0
     ]);
 
     // حساب صافي الربح
@@ -221,7 +284,7 @@ public function show(Shift $shift)
       ->whereNull('end_time')
       ->first();
     $isAdmin = $user->hasRole('admin');
-    if ($openShift&& !$isAdmin) {
+    if ($openShift && !$isAdmin) {
       return response()->json([
         'open' => true,
         'shift_id' => $openShift->id,

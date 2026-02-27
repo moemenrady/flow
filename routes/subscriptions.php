@@ -1,10 +1,13 @@
 <?php
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\SubscriptionVisitController;
+use Illuminate\Support\Facades\Route;
 
 // الاشتراكات 
 
 Route::middleware('auth')->group(function () {
+Route::delete('/visits/{id}', [SubscriptionController::class, 'deleteVisit'])
+    ->name('sub.delete-visit');
 
   // ✅ صفحة الاشتراكات الرئيسية (بالفلاتر و الجدول)
   Route::get('/subscriptions', [SubscriptionController::class, 'index'])->name('subscriptions.index');
@@ -23,6 +26,7 @@ Route::middleware('auth')->group(function () {
 
   // ✅ إنقاص زيارة
   Route::post('/subscriptions/{subscription}/decrease', [SubscriptionController::class, 'decrease'])->name('subscriptions.decrease');
+  Route::post('/subscriptions/{subscription}/decrease_from_sessions', [SubscriptionController::class, 'decreaseFromSession'])->name('subscriptions.decrease_from_sessions');
 
   // ✅ باقي الروتات الخاصة بالخطط والعملاء
   Route::get('/plans', [SubscriptionController::class, 'plans'])->name('plans');
@@ -50,6 +54,7 @@ Route::get('subscriptions/{subscription}/visits/list', [SubscriptionVisitControl
 Route::post('subscription-visits/{visit}/checkout', [SubscriptionVisitController::class, 'checkout'])
     ->name('subscription-visits.checkout')
     ->middleware('auth');
+    
 });
 
 

@@ -54,6 +54,7 @@
             <table class="styled-table" aria-hidden="false">
                 <thead>
                     <tr>
+                        <th>تاريخ التسجيل</th>
                         <th>الوصف</th>
                         <th>المبلغ التقديري</th>
                         <th>الموظف</th>
@@ -62,7 +63,13 @@
                 </thead>
                 <tbody>
                     @foreach ($drafts as $draft)
-                        <tr>
+                        <tr></tr>
+                            <td>
+                                <span class="draft-date">
+                                    {{ $draft->created_at->format('Y-m-d') }}
+                                </span>
+                            </td>
+
                             <td class="td-note">{{ $draft->note }}</td>
                             <td>{{ $draft->estimated_amount ?? 'غير محدد' }}</td>
                             <td>{{ $draft->user->name ?? 'غير معروف' }}</td>
@@ -119,13 +126,13 @@
 
     <style>
         /* عام */
-        :root{
-            --bg:#F2F2F2;
-            --card-bg:#ffffff;
-            --accent:#D9B1AB;
-            --muted:#777;
-            --text:#333;
-            --radius:14px;
+        :root {
+            --bg: #F2F2F2;
+            --card-bg: #ffffff;
+            --accent: #D9B1AB;
+            --muted: #777;
+            --text: #333;
+            --radius: 14px;
         }
 
         body {
@@ -134,8 +141,8 @@
             margin: 0;
             padding: 90px;
             color: var(--text);
-            -webkit-font-smoothing:antialiased;
-            -moz-osx-font-smoothing:grayscale;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         .page-title {
@@ -177,7 +184,8 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            direction: rtl; /* يحافظ على اتجاه النص العربي */
+            direction: rtl;
+            /* يحافظ على اتجاه النص العربي */
         }
 
         .styled-table tbody tr {
@@ -221,7 +229,7 @@
         }
 
         .btn-submit:hover,
-        .btn-submit:focus{
+        .btn-submit:focus {
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(217, 177, 171, 0.32);
             outline: none;
@@ -236,7 +244,8 @@
 
         /* CARDS GRID (mobile) */
         .cards-grid {
-            display: none; /* يبدأ مخفيًا على الديسكتوب */
+            display: none;
+            /* يبدأ مخفيًا على الديسكتوب */
             gap: 14px;
             margin-top: 6px;
         }
@@ -245,55 +254,57 @@
             background: linear-gradient(180deg, #fff, #fff);
             border-radius: 12px;
             padding: 14px;
-            box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
             display: flex;
             flex-direction: column;
             gap: 10px;
         }
 
         .card-header {
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            gap:10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
         }
 
         .card-user {
-            font-size:16px;
-            margin:0;
-            color:#222;
-            font-weight:600;
+            font-size: 16px;
+            margin: 0;
+            color: #222;
+            font-weight: 600;
         }
 
         .card-amount {
-            font-size:14px;
-            color:var(--muted);
+            font-size: 14px;
+            color: var(--muted);
             background: #faf0ef;
-            padding:6px 10px;
-            border-radius:8px;
+            padding: 6px 10px;
+            border-radius: 8px;
         }
 
         .card-note {
-            margin:0;
-            color:#444;
-            font-size:14px;
-            white-space:pre-wrap;
+            margin: 0;
+            color: #444;
+            font-size: 14px;
+            white-space: pre-wrap;
         }
 
-        .card-action-form{
-            display:flex;
-            gap:8px;
-            flex-wrap:wrap;
-            align-items:center;
-            justify-content:space-between;
+        .card-action-form {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
         }
 
         /* RESPONSIVE BREAKPOINTS */
         @media (max-width: 900px) {
+
             /* إخفاء الجدول وإظهار الكروت */
             .styled-table {
                 display: none;
             }
+
             .cards-grid {
                 display: grid;
                 grid-template-columns: 1fr;
@@ -312,7 +323,8 @@
                 margin-bottom: 12px;
             }
 
-            .styled-select, input[type="number"] {
+            .styled-select,
+            input[type="number"] {
                 min-width: 100%;
                 margin: 0;
             }
@@ -324,12 +336,16 @@
         }
 
         @media (min-width: 901px) and (max-width: 1200px) {
-            .td-note { max-width: 300px; }
+            .td-note {
+                max-width: 300px;
+            }
         }
 
         /* Accessibility helpers */
-        .styled-select:focus-visible, input[type="number"]:focus-visible, .btn-submit:focus-visible {
-            outline: 3px solid rgba(217,177,171,0.25);
+        .styled-select:focus-visible,
+        input[type="number"]:focus-visible,
+        .btn-submit:focus-visible {
+            outline: 3px solid rgba(217, 177, 171, 0.25);
             outline-offset: 2px;
         }
     </style>

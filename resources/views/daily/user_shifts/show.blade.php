@@ -10,9 +10,9 @@
                     <div class="shift-meta">
                         الموظف: <strong>{{ $shift->user?->name ?? '—' }}</strong>
                         • بداية:
-                        <strong>{{ $shift->start_time ? \Carbon\Carbon::parse($shift->start_time)->format('Y-m-d H:i') : \Carbon\Carbon::parse($shift->created_at)->format('Y-m-d H:i') }}</strong>
+                        <strong>{{ $shift->start_time ? \Carbon\Carbon::parse($shift->start_time)->format('Y-m-d h:i A') : \Carbon\Carbon::parse($shift->created_at)->format('Y-m-d h:i A') }}</strong>
                         • نهاية:
-                        <strong>{{ $shift->end_time ? \Carbon\Carbon::parse($shift->end_time)->format('Y-m-d H:i') : '—' }}</strong>
+                        <strong>{{ $shift->end_time ? \Carbon\Carbon::parse($shift->end_time)->format('Y-m-d h:i A') : '—' }}</strong>
                     </div>
                 </div>
 
@@ -78,7 +78,7 @@
                                     <div class="action-meta">
                                         <div class="action-type">{{ humanizeAction($action->action_type) }}</div>
                                         <div class="action-time">
-                                            {{ \Carbon\Carbon::parse($action->created_at)->format('Y-m-d H:i') }}</div>
+                                            {{ \Carbon\Carbon::parse($action->created_at)->format('Y-m-d h:i A') }}</div>
                                     </div>
                                 </div>
 
@@ -101,7 +101,7 @@
                                         <strong>فاتورة مرتبطة:</strong>
                                         @if ($action->invoice)
                                             <a
-                                                href="{{ route('invoices.admin_show', $action->invoice->id) }}">#{{ $action->invoice->id }}</a>
+                                                href="{{ route('invoices.client.show', $action->invoice->id) }}">#{{ $action->invoice->id }}</a>
                                         @else
                                             —
                                         @endif

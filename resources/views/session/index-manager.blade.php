@@ -85,6 +85,27 @@
             min-width: 260px;
         }
 
+
+        .session-card,
+        .booking-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            background: #fff;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            border-top: 4px solid #d9b2ad;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .session-card:hover,
+        .booking-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        }
+
         .sessions-list {
             display: flex;
             flex-direction: column;
@@ -92,20 +113,20 @@
             padding: 12px;
         }
 
-        .session-card {
-            width: 100%;
-            background: linear-gradient(180deg, #ffffff, #fffafa);
-            min-height: 72px;
-            border-radius: 12px;
-            padding: 12px 14px;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
-            border-top: 4px solid rgba(217, 178, 173, 0.18);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            transition: transform .25s ease, box-shadow .25s ease;
-        }
+        /* .session-card {
+                width: 100%;
+                background: linear-gradient(180deg, #ffffff, #fffafa);
+                min-height: 72px;
+                border-radius: 12px;
+                padding: 12px 14px;
+                box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+                border-top: 4px solid rgba(217, 178, 173, 0.18);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+                transition: transform .25s ease, box-shadow .25s ease;
+            } */
 
         .space {
             height: 50px;
@@ -474,6 +495,19 @@
                     <p class="text-center p-3">⏳ جاري التحميل...</p>
                 </div>
             </div>
+            <div class="d-flex gap-4">
+
+                <!-- الشمال: الحجوزات الجارية -->
+                <div class="flex-1">
+                    <h3>الحجوزات الجارية</h3>
+                    <div id="inProgressBookings">
+                        <p class="text-center p-3">⏳ جاري التحميل...</p>
+                    </div>
+                </div>
+
+
+
+            </div>
 
             <!-- ====== اليمين: بطاقة إنشاء الجلسة مصغّرة ====== -->
             <div class="right">
@@ -528,11 +562,11 @@
                         <button type="submit" class="btn-submit" style="flex:1; min-width:140px;">🚀 بدء الجلسة</button>
 
                         <!-- زر يفتح المودال — لا يرسل الفورم -->
-                        <button type="button" id="openPrivateBtn" class="btn-submit"
+                        {{-- <button type="button" id="openPrivateBtn" class="btn-submit"
                             style="background: linear-gradient(135deg,#7b61ff,#5e3bff); flex:1; min-width:140px;"
                             data-bs-toggle="modal" data-bs-target="#startBookingModal">
                             🔒 بدء جلسة خاصة
-                        </button>
+                        </button> --}}
                     </div>
                 </form>
 
@@ -546,6 +580,22 @@
 
     @include('session.modal.start-booking')
     <!-- ====== السكربت: دمج وظائف البحث والعداد مع جلب الجلسات ====== -->
+    @include('session.modal.active_sub_modal')
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            @if (session('client_has_active_sub'))
+                console.log("فتح المودال");
+                var modalEl = document.getElementById('activeSubModal');
+                if (modalEl) {
+                    var modal = new bootstrap.Modal(modalEl);
+                    modal.show();
+                }
+            @endif
+        });
+    </script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         const ID_CONFIG = {
@@ -1253,7 +1303,7 @@
                     mainForm.querySelector('input[name="age"]').value = form.age.value;
                     mainForm.querySelector('input[name="specialization_id"]').value = form.specialization_id.value;
                     mainForm.querySelector('input[name="education_stage_id"]').value = form.education_stage_id
-                    .value;
+                        .value;
 
                     // اغلاق المودال
                     modal.style.display = 'none';
@@ -1702,178 +1752,60 @@
                     }
                 });
 
-                // مستمع موحّد: اختصارات عالمية + توجيه الكتابة حسب أول رقم (0 -> phone, 1 -> clientIdInput)
-                // يحترم CONFIG.ignoreInputsSelector حتى لا يتداخل مع الحقول النصية الحقيقية
+                // مستمع موحد للكتابة بدون فوكس
                 $(document).on('keydown.globalTypeMerged', function(e) {
                     const target = e.target;
 
-                    // لو التركيز داخل حقل نصي أو عنصر قابل للتحرير أو select — لا نتدخل
+                    // لو المستخدم واقف على input حقيقي سيبه
                     if ($(target).is(CONFIG.ignoreInputsSelector)) return;
 
-                    // اختصارات: Ctrl/Cmd + K => تركيز على حقل البحث الرئيسي
-                    if ((e.ctrlKey || e.metaKey) && (e.key && e.key.toLowerCase() === 'k')) {
-                        e.preventDefault();
-                        $(CONFIG.searchInput).focus().select();
-                        return;
-                    }
-
-                    // Escape => إخفاء النتائج وازالة الفوكس من البحث
+                    // Escape
                     if (e.key === 'Escape') {
                         clearResults();
                         $(CONFIG.searchInput).blur();
                         return;
                     }
 
-                    // Enter => سلوك إرسال/اختيار عام (يحاكي السلوك السابق)
-                    if (e.key === 'Enter') {
-                        const qVal = $(CONFIG.searchInput).val() || '';
-                        if (qVal.trim().length >= 1) {
-                            if (state.currentResults.length > 0) {
-                                e.preventDefault();
-                                const pickIdx = state.highlightedIndex >= 0 ? state.highlightedIndex :
-                                    0;
-                                if (pickResult(pickIdx)) {
-                                    return;
-                                }
-                            } else {
-                                if (CONFIG.nextFieldIfNoResults) {
-                                    e.preventDefault();
-                                    $(CONFIG.nextFieldIfNoResults).focus().select();
-                                    return;
-                                }
-                            }
-                        } else {
-                            // لا تفعل شيئاً إن الحقل فاضي
-                        }
+                    // Ctrl + K
+                    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                        e.preventDefault();
+                        $(CONFIG.searchInput).focus().select();
                         return;
                     }
 
-                    // السلوك الخاص بالمفاتيح المفردة غير المعدّلة (حروف/أرقام)
-                    const key = e.key;
+                     // // أرقام فقط
+                    // // الاستماع لرقم 0 فقط
+                    // if (
+                    //     e.key === '0' &&
+                    //     !e.ctrlKey &&
+                    //     !e.metaKey &&
+                    //     !e.altKey
+                    // ) {
+                    //     e.preventDefault();
 
-                    // — نعامل الأرقام المفردة بشكل خاص إذا لم تُضغط أي modifier
-                    if (key && key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-                        // لو رقم
-                        if (/^[0-9]$/.test(key)) {
-                            // تمنع السلوك الافتراضي لأننا سنتحكم بإدخال الحرف في الحقل الصحيح
-                            e.preventDefault();
+                    //     const $phone = $('#phone');
+                    //     try {
+                    //         const el = $phone.get(0);
+                    //         const start = el.selectionStart ?? $phone.val().length;
+                    //         const end = el.selectionEnd ?? start;
+                    //         const val = $phone.val() || '';
+                    //         const newVal = val.slice(0, start) + e.key + val.slice(end);
 
-                            // لو الرقم '0' — اكتب في حقل الهاتف وأعطه الفوكس
-                            if (key === '0') {
-                                const $phone = $('#phone');
-                                // ضع الرقم في موضع الكيرسور الحالي داخل الحقل (أو النهاية إذا لا يدعم)
-                                try {
-                                    const el = $phone.get(0);
-                                    const start = (typeof el.selectionStart === 'number') ? el
-                                        .selectionStart : $phone.val().length;
-                                    const end = (typeof el.selectionEnd === 'number') ? el
-                                        .selectionEnd : start;
-                                    const val = $phone.val() || '';
-                                    const newVal = val.slice(0, start) + key + val.slice(end);
-                                    $phone.val(newVal).trigger('input');
-                                    const caret = start + 1;
-                                    el.setSelectionRange(caret, caret);
-                                    $phone.focus();
-                                } catch (err) {
-                                    $phone.val(($phone.val() || '') + key).trigger('input').focus();
-                                }
-                                return;
-                            }
+                    //         $phone.val(newVal).trigger('input');
+                    //         el.setSelectionRange(start + 1, start + 1);
+                    //         $phone.focus();
+                    //     } catch {
+                    //         $phone
+                    //             .val(($phone.val() || '') + e.key)
+                    //             .trigger('input')
+                    //             .focus();
+                    //     }
 
-                            // لو الرقم '1' — اكتب في حقل المعرّف (ID) وأعطه الفوكس
-                            if (key === '1') {
-                                const $id = $('#clientIdInput');
-                                try {
-                                    const el = $id.get(0);
-                                    const start = (typeof el.selectionStart === 'number') ? el
-                                        .selectionStart : $id.val().length;
-                                    const end = (typeof el.selectionEnd === 'number') ? el
-                                        .selectionEnd : start;
-                                    const val = $id.val() || '';
-                                    const newVal = (val.slice(0, start) + key + val.slice(end)).slice(0,
-                                        ID_CONFIG.maxLength);
-                                    $id.val(newVal).trigger('input');
-                                    const caret = Math.min(start + 1, ID_CONFIG.maxLength);
-                                    el.setSelectionRange(caret, caret);
-                                    $id.focus();
-                                } catch (err) {
-                                    $id.val(($id.val() || '') + key);
-                                    $id.trigger('input');
-                                    $id.focus();
-                                }
-                                return;
-                            }
+                    //     return;
+                    // }
 
-                            // لرقم آخر — افتراضي: أدخله في حقل البحث الرئيسي (CONFIG.searchInput)
-                            // هذا يحاكي السلوك السابق الذي كان يدخل أي حرف الى حقل البحث.
-                            (function() {
-                                const $inp = $(CONFIG.searchInput);
-                                const inputEl = $inp.get(0);
-                                if (!inputEl) return;
-                                try {
-                                    const start = (typeof inputEl.selectionStart === 'number') ?
-                                        inputEl.selectionStart : $inp.val().length;
-                                    const end = (typeof inputEl.selectionEnd === 'number') ? inputEl
-                                        .selectionEnd : start;
-                                    const val = $inp.val() || '';
-                                    const newVal = val.slice(0, start) + key + val.slice(end);
-                                    $inp.val(newVal).trigger('input');
-                                    const caret = start + 1;
-                                    inputEl.setSelectionRange(caret, caret);
-                                    $inp.focus();
-                                } catch (err) {
-                                    $inp.val(($inp.val() || '') + key).trigger('input');
-                                    $inp.focus();
-                                }
-                                clearResults();
-                            })();
 
-                            return;
-                        }
-
-                        // لو حرف عادي (غير رقم) — نعيد سلوك إدخال الحرف في حقل البحث الرئيسي (كما كان)
-                        const code = key.charCodeAt(0);
-                        if (code >= 32) {
-                            e.preventDefault();
-                            const $inp = $(CONFIG.searchInput);
-                            const inputEl = $inp.get(0);
-                            if (!inputEl) return;
-                            try {
-                                const start = (typeof inputEl.selectionStart === 'number') ? inputEl
-                                    .selectionStart : $inp.val().length;
-                                const end = (typeof inputEl.selectionEnd === 'number') ? inputEl
-                                    .selectionEnd : start;
-                                const val = $inp.val() || '';
-                                const newVal = val.slice(0, start) + key + val.slice(end);
-                                $inp.val(newVal).trigger('input');
-                                const caret = start + 1;
-                                inputEl.setSelectionRange(caret, caret);
-                                $inp.focus();
-                            } catch (err) {
-                                $inp.val(($inp.val() || '') + key).trigger('input');
-                                $inp.focus();
-                            }
-                            clearResults();
-                            return;
-                        }
-                    }
-
-                    // — الآن التعامل مع تنقّل الأسهم وعداد الأشخاص كما في السابق
-                    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-                        if (state.currentResults.length > 0) {
-                            e.preventDefault();
-                            if (e.key === 'ArrowDown') {
-                                if (state.highlightedIndex < state.currentResults.length - 1) highlight(
-                                    state.highlightedIndex + 1);
-                                else highlight(state.currentResults.length - 1);
-                            } else {
-                                if (state.highlightedIndex > 0) highlight(state.highlightedIndex - 1);
-                                else highlight(0);
-                            }
-                            return;
-                        }
-                    }
-
+                    // الأسهم + عداد الأشخاص
                     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
                         if ($(CONFIG.countDisplay).length) {
                             e.preventDefault();
@@ -1883,7 +1815,17 @@
                         }
                     }
 
-                    // لا تغيّر أي سلوك آخر
+                    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                        if (state.currentResults.length > 0) {
+                            e.preventDefault();
+                            if (e.key === 'ArrowDown') {
+                                highlight(Math.min(state.highlightedIndex + 1, state.currentResults
+                                    .length - 1));
+                            } else {
+                                highlight(Math.max(state.highlightedIndex - 1, 0));
+                            }
+                        }
+                    }
                 });
 
 
@@ -1907,5 +1849,71 @@
             }); // ready
         })(jQuery);
     </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const inProgressBox = document.getElementById("inProgressBookings");
 
+            const showBookingRoute = @json(route('bookings.show', ':id'));
+
+            function renderBookingCard(b) {
+                const weekdayNames = ['الحد', 'الاتنين', 'التلات', 'الأربع', 'الخميس', 'الجمعة', 'السبت'];
+                const startDate = new Date(b.start_at);
+                const weekdayLabel = weekdayNames[startDate.getDay()];
+
+                return `
+        <div class="booking-card" data-id="${b.id}">
+            <div class="info" style="text-align:right;">
+                <h3>👤 ${b.client_name || '-'}</h3>
+                <p>🏛️ ${b.hall_name || '-'}</p>
+                <p class="weekday">📅 ${weekdayLabel} / ${startDate.getDate()}/${startDate.getMonth()+1}</p>
+            </div>
+            <div class="meta" style="text-align:right;">
+                <span class="badge bg-info">${b.status === 'in_progress' ? 'جاري' : ''}</span>
+                <p class="mt-2">💰 ${parseFloat(b.estimated_total).toFixed(2)}</p>
+            </div>
+        </div>`;
+            }
+
+            async function fetchInProgressBookings() {
+                inProgressBox.innerHTML = `<p class="text-center p-3">⏳ جاري التحميل...</p>`;
+                try {
+                    const url = new URL("{{ route('bookings.ajaxSearchManager') }}", location.origin);
+                    url.searchParams.append('statuses[]', 'in_progress');
+
+                    const res = await fetch(url.toString(), {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+                    const data = await res.json();
+                    const items = Array.isArray(data) ? data : Object.values(data);
+
+                    if (!items || items.length === 0) {
+                        inProgressBox.innerHTML = `<p class="no-results">❌ لا توجد حجوزات حالية</p>`;
+                        return;
+                    }
+
+                    inProgressBox.innerHTML = '';
+                    items.forEach(b => {
+                        inProgressBox.insertAdjacentHTML('beforeend', renderBookingCard(b));
+                    });
+
+                    // ربط الضغط على البطاقة للانتقال لصفحة show
+                    inProgressBox.querySelectorAll('.booking-card').forEach(card => {
+                        card.addEventListener('click', () => {
+                            const id = card.dataset.id;
+                            if (!id) return;
+                            window.location.href = showBookingRoute.replace(':id', id);
+                        });
+                    });
+
+                } catch (err) {
+                    console.error(err);
+                    inProgressBox.innerHTML = `<p class="no-results">حدث خطأ أثناء جلب الحجوزات</p>`;
+                }
+            }
+
+            fetchInProgressBookings();
+        });
+    </script>
 @endsection

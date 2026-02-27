@@ -15,6 +15,7 @@ class Shift extends Model
     'duration',
     'total_amount',
     'total_expense',
+    'deposited_amount',
   ];
 
   protected $casts = [

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\ClientController;
+use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth')->group(function () {
   // صفحة العملاء

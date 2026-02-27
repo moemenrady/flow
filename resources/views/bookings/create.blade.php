@@ -21,6 +21,7 @@
 
                         <form action="{{ route('bookings.store') }}" method="POST">
                             @csrf
+<input type="hidden" name="deposit_payment_type" id="deposit_payment_type">
 
                             <div class="mb-3">
                                 <label class="form-label">اسم الحجز</label>
@@ -213,10 +214,7 @@
                                 @enderror
                             </div>
 
-                            <div class="mb-3">
-                                <label class="form-label">ملاحظات</label>
-                                <textarea name="notes" class="form-control" rows="3">{{ old('notes') }}</textarea>
-                            </div>
+                          
                             <input type="hidden" name="start_at_full" id="start_at_full">
                             <input type="hidden" name="end_at_full" id="end_at_full">
 
@@ -1178,13 +1176,6 @@
       }
     } catch(e){}
 
-    // input event -> بحث
-    $(document).on('input', CONFIG.searchInput, function(){
-      const q = $(this).val() || '';
-      if (CONFIG.nameField) $(CONFIG.nameField).val('');
-      if (q.trim().length >= 1) doSearch(q.trim());
-      else clearResults();
-    });
 
     // click result -> pick
     $(document).on('click', `${CONFIG.resultsContainer} .${CONFIG.resultsItemClass}`, function(e){
@@ -1220,70 +1211,8 @@
       }
     });
 
-    // Enter in name -> انتقل للحقل الفاضي التالي
-    $(document).on('keydown', CONFIG.nameField, function(e){
-      if (e.key === 'Enter'){
-        e.preventDefault();
-        const ok = focusNextEmpty();
-        if (!ok) tinyToast('لا يوجد حقول فارغة أخرى');
-      }
-    });
 
-    // global key handling:
-    // - printable chars when not focused inside editable -> inject to search
-    // - arrows when not focused inside editable -> if results present navigate highlight
-    $(document).on('keydown', function(e){
-      const target = e.target;
-      const isEditable = target && (target.matches && target.matches(CONFIG.ignoreInputsSelector));
-      if (isEditable) return;
-
-      // arrows navigate results if present
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        if (state.currentResults.length > 0){
-          e.preventDefault();
-          if (e.key === 'ArrowDown'){
-            if (state.highlightedIndex < state.currentResults.length - 1) highlight(state.highlightedIndex + 1);
-            else highlight(state.currentResults.length - 1);
-          } else {
-            if (state.highlightedIndex > 0) highlight(state.highlightedIndex - 1);
-            else highlight(0);
-          }
-          return;
-        }
-      }
-
-      // Enter globally: pick highlighted if exists otherwise focus next empty
-      if (e.key === 'Enter'){
-        if (state.currentResults.length > 0){
-          e.preventDefault();
-          const pickIdx = state.highlightedIndex >= 0 ? state.highlightedIndex : 0;
-          pickResult(pickIdx);
-          return;
-        } else {
-          const ok = focusNextEmpty();
-          if (ok){ e.preventDefault(); return; }
-        }
-      }
-
-      // printable -> inject into search
-      const key = e.key || '';
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (key.length === 1){
-        const code = key.charCodeAt(0);
-        if (code >= 32){
-          const ok = injectCharToSearch(key);
-          if (ok){ e.preventDefault(); }
-        }
-      }
-    });
-
-    // click outside closes results
-    $(document).on('click', function(e){
-      if (!$(e.target).closest(CONFIG.resultsContainer + ', ' + CONFIG.searchInput + ', ' + CONFIG.nameField).length){
-        clearResults();
-      }
-    });
-
+    
     // init: if search has value on load, trigger search
     const initVal = $search.val() || '';
     if (initVal.trim().length >= 1) doSearch(initVal.trim());
@@ -1425,6 +1354,59 @@
             });
         });
     </script>
+    
+      <script>
+document.addEventListener("DOMContentLoaded", () => {
+
+    const bookingForm = document.querySelector('form[action="{{ route('bookings.store') }}"]');
+
+    bookingForm.addEventListener('submit', function (e) {
+        // هنعمل preventDefault اول مرة بس
+        if (!bookingForm.dataset.paymentChosen) {
+            const deposit = parseFloat(document.querySelector('input[name="deposit"]').value || 0);
+
+            if (deposit > 0) {
+                e.preventDefault();
+
+                // افتح مودال اختيار الدفع
+                new bootstrap.Modal(document.getElementById('depositPaymentModal')).show();
+                return;
+            }
+        }
+    });
+});
+
+// بعد اختيار طريقة الدفع
+function chooseDepositPayment(type) {
+    // احفظ النوع جوه hidden input
+    document.getElementById('deposit_payment_type').value = type;
+
+    const bookingForm = document.querySelector('form[action="{{ route('bookings.store') }}"]');
+
+    // علشان ميعملش preventDefault تاني
+    bookingForm.dataset.paymentChosen = "true";
+
+    // ابعت الفورم
+    bookingForm.submit();
+}
+</script>
+      <!-- Payment Modal -->
+<div class="modal fade" id="depositPaymentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">اختر طريقة دفع المقدم</h5>
+            </div>
+
+            <div class="modal-body text-center">
+                <button class="btn btn-success w-100 mb-2" onclick="chooseDepositPayment('cash')">💵 كاش</button>
+                <button class="btn btn-primary w-100" onclick="chooseDepositPayment('digital')">💳 محفظة</button>
+            </div>
+
+        </div>
+    </div>
+</div>
 @endsection
 
 @section('style')

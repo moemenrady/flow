@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 Route::middleware('auth')->group(function () {
 
   Route::get('/products/search', [ProductController::class, 'search'])->name('products.search');
+  Route::get('/products/search-id', [ProductController::class, 'searchId'])->name('products.searchid');
 
 
   Route::get('clients/next-id', [ClientController::class, 'nextId'])
@@ -66,4 +67,5 @@ require __DIR__ . '/halls.php';
 require __DIR__ . '/analytics.php';
 require __DIR__ . '/daily.php';
 require __DIR__ . '/invoices.php';
+require __DIR__ . '/setion_not_added.php';
 

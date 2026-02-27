@@ -7,11 +7,13 @@ use App\Http\Controllers\ManagmentController;
 use App\Http\Controllers\SubscriptionPlanController;
 use App\Http\Controllers\SystemEditController;
 use App\Http\Controllers\VenuePricingController;
+use Illuminate\Support\Facades\Route;
+
 Route::middleware(['auth', 'admin'])->group(function () {
   
   Route::get('/managment', [ManagmentController::class, 'create'])->name('managment.create');
   Route::get('/managment/system-edit', [SystemEditController::class, 'create'])->name('managment-system-edit.create');
- Route::get('/managment/halls/create', [HallController::class, 'create'])->name('halls.create');
+//  Route::get('/managment/halls/create', [HallController::class, 'create'])->name('halls.create');
  Route::get('/managment-base-Hours/create', [VenuePricingController::class, 'create'])->name('records.create');
  Route::post('/managment-base-Hours/create', [VenuePricingController::class, 'store'])->name('records.store');
 

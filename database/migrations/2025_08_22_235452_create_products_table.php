@@ -6,11 +6,12 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void {
         Schema::create('products', function (Blueprint $table) {
-            $table->id();
+            $table->unsignedBigInteger('id')->primary();
             $table->string('name');
             $table->decimal('price', 10, 2);
             $table->decimal('cost',8,2);
             $table->unsignedInteger('quantity',)->default(0);
+            $table->unsignedInteger('min_quantity',)->default(0);
             $table->timestamps();
         });
     }

@@ -75,102 +75,118 @@
             <h2 class="page-title">الشيفت الحالي</h2>
 
             <div class="form-container animate__animated animate__fadeInUp shift-summary">
-                <div class="summary-grid">
-                    <div class="summary-item">
-                        <div class="summary-label">وقت البدء</div>
-                        <div class="summary-value">{{ $shift->start_time }}</div>
+                <div class="summary-item highlight-yellow">
+                    <div class="summary-label">المبلغ في الخزنة لأخر شيفت اتقفل النهارده</div>
+
+                    <div class="summary-value">
+                        {{ number_format($lastDepositedAmount, 2) }} ج.م
                     </div>
 
-                    <div class="summary-item">
-                        <div class="summary-label">إجمالي الإيرادات</div>
-                        <div class="summary-value">{{ number_format($shift->total_amount, 2) }} ج.م</div>
-                    </div>
+                    @if ($lastClosedShiftToday)
+                        <div class="deposit-info">
+                            <span>{{ $lastClosedShiftToday->user->name ?? '—' }}</span>
+                        </div>
+                    @endif
+                </div>
 
-                    <div class="summary-item">
-                        <div class="summary-label">إجمالي المصروفات</div>
-                        <div class="summary-value">{{ number_format($shift->total_expense, 2) }} ج.م</div>
-                    </div>
 
-                    <div class="summary-item">
-                        <div class="summary-label">الصافي</div>
-                        <div class="summary-value">{{ number_format($shift->net_profit, 2) }} ج.م</div>
+
+                <div class="summary-item">
+                    <div class="summary-label">إجمالي الإيرادات</div>
+
+                    <div class="summary-value">
+                        {{ number_format($shift->total_amount, 2) }} ج.م
+                        <small style="color: #555;">
+                            (كاش: {{ number_format($totalCash, 2) }} - رقمي: {{ number_format($totalDigital, 2) }})
+                        </small>
                     </div>
                 </div>
 
-                <form action="{{ route('shift.end') }}" method="POST"
-                    onsubmit="return confirm('هل أنت متأكد من إنهاء الشيفت؟');" class="end-form">
-                    @csrf
-                    <button type="submit" class="btn-end-shift">⛔ إنهاء الشيفت</button>
-                </form>
+                <div class="summary-item">
+                    <div class="summary-label">إجمالي المصروفات</div>
+                    <div class="summary-value">{{ number_format($shift->total_expense, 2) }} ج.م</div>
+                </div>
+
+                <div class="summary-item">
+                    <div class="summary-label">الصافي</div>
+                    <div class="summary-value">{{ number_format($shift->net_profit, 2) }} ج.م</div>
+                </div>
             </div>
 
-            <h3 class="page-title">العمليات خلال الشيفت</h3>
+            <button type="button" class="btn-end-shift" onclick="openEndShiftModal()">
+                ⛔ إنهاء الشيفت
+            </button>
 
-            <div class="form-container animate__animated animate__fadeInUp actions-wrapper" aria-live="polite">
-                <!-- Desktop Table -->
-                <div class="table-responsive">
-                    <table class="actions-table" role="table" aria-label="قائمة العمليات">
-                        <thead>
-                            <tr>
-                                <th>العملية</th>
-                                <th>المبلغ</th>
-                                <th>المصروف</th>
-                                <th>الوصف</th>
-                                <th>التاريخ</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse ($shift->actions as $action)
-                                <tr>
-                                    <td>
-                                        {{ $actionLabels[$action->action_type] ?? $action->action_type }}
-                                    </td>
-                                    <td>{{ $action->amount > 0 ? number_format($action->amount, 2) : '-' }}</td>
-                                    <td>{{ $action->expense_amount ? number_format($action->expense_amount, 2) : '-' }}
-                                    </td>
-                                    <td class="td-notes">{{ $action->notes ?? '-' }}</td>
-                                    <td>{{ $action->created_at->format('Y-m-d H:i') }}</td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="5" style="text-align:center;">لا توجد عمليات مسجلة</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
+    </div>
 
-                <!-- Mobile Cards -->
-                <div class="cards-grid" aria-hidden="true">
+    <h3 class="page-title">العمليات خلال الشيفت</h3>
+
+    <div class="form-container animate__animated animate__fadeInUp actions-wrapper" aria-live="polite">
+        <!-- Desktop Table -->
+        <div class="table-responsive">
+            <table class="actions-table" role="table" aria-label="قائمة العمليات">
+                <thead>
+                    <tr>
+                        <th>العملية</th>
+                        <th>المبلغ</th>
+                        <th>المصروف</th>
+                        <th>الوصف</th>
+                        <th>التاريخ</th>
+                    </tr>
+                </thead>
+                <tbody>
                     @forelse ($shift->actions as $action)
-                        <article class="action-card" role="article" aria-label="عملية {{ $action->id }}">
-                            <div class="card-top">
-                                <div class="card-type">
-                                    {{ $actionLabels[$action->action_type] ?? $action->action_type }}
-                                </div>
-                                <div class="card-date">{{ $action->created_at->format('Y-m-d H:i') }}</div>
-                            </div>
-
-                            <div class="card-body">
-                                <div class="card-row"><span class="meta">المبلغ:</span>
-                                    <span
-                                        class="val">{{ $action->amount > 0 ? number_format($action->amount, 2) : '-' }}</span>
-                                </div>
-                                <div class="card-row"><span class="meta">المصروف:</span>
-                                    <span
-                                        class="val">{{ $action->expense_amount ? number_format($action->expense_amount, 2) : '-' }}</span>
-                                </div>
-                                <div class="card-row note"><span class="meta">الوصف:</span>
-                                    <div class="val">{{ $action->notes ?? '-' }}</div>
-                                </div>
-                            </div>
-                        </article>
+                        <tr>
+                            <td>
+                                {{ $actionLabels[$action->action_type] ?? $action->action_type }}
+                            </td>
+                            <td>{{ $action->amount > 0 ? number_format($action->amount, 2) : '-' }}</td>
+                            <td>{{ $action->expense_amount ? number_format($action->expense_amount, 2) : '-' }}
+                            </td>
+                            <td class="td-notes">{{ $action->notes ?? '-' }}</td>
+                            <td>{{ $action->created_at->format('Y-m-d H:i') }}</td>
+                        </tr>
                     @empty
-                        <div class="no-cards">لا توجد عمليات مسجلة</div>
+                        <tr>
+                            <td colspan="5" style="text-align:center;">لا توجد عمليات مسجلة</td>
+                        </tr>
                     @endforelse
-                </div>
-            </div>
-        @endif
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile Cards -->
+        <div class="cards-grid" aria-hidden="true">
+            @forelse ($shift->actions as $action)
+                <article class="action-card" role="article" aria-label="عملية {{ $action->id }}">
+                    <div class="card-top">
+                        <div class="card-type">
+                            {{ $actionLabels[$action->action_type] ?? $action->action_type }}
+                        </div>
+                        <div class="card-date">{{ $action->created_at->format('Y-m-d H:i') }}</div>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="card-row"><span class="meta">المبلغ:</span>
+                            <span class="val">{{ $action->amount > 0 ? number_format($action->amount, 2) : '-' }}</span>
+                        </div>
+                        <div class="card-row"><span class="meta">المصروف:</span>
+                            <span
+                                class="val">{{ $action->expense_amount ? number_format($action->expense_amount, 2) : '-' }}</span>
+                        </div>
+                        <div class="card-row note"><span class="meta">الوصف:</span>
+                            <div class="val">{{ $action->notes ?? '-' }}</div>
+                        </div>
+                    </div>
+                </article>
+            @empty
+                <div class="no-cards">لا توجد عمليات مسجلة</div>
+            @endforelse
+        </div>
+    </div>
+    @endif
+
+
     </div>
 
     <style>
@@ -190,7 +206,7 @@
             font-family: "Cairo", sans-serif;
             background: var(--bg);
             margin: 0;
-            padding: 32px;
+            padding: 100px;
             color: var(--text);
             -webkit-font-smoothing: antialiased;
         }
@@ -441,4 +457,156 @@
             outline-offset: 2px;
         }
     </style>
+
+    <style>
+        .deposit-list {
+            margin-top: 10px;
+            border-top: 1px dashed #f1c40f;
+            padding-top: 8px;
+            font-size: 12px;
+        }
+
+        .deposit-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2px 0;
+            color: #7a6a00;
+        }
+
+        .shift-time {
+            opacity: 0.8;
+            width: 80px;
+        }
+
+        .shift-employee {
+            flex: 1;
+            text-align: left;
+            margin-left: 10px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .shift-amount {
+            font-weight: 600;
+        }
+
+        .highlight-yellow {
+            border: 2px solid #f1c40f;
+            /* أصفر واضح */
+            background: #fffbea;
+            /* أصفر خفيف */
+            border-radius: 12px;
+            box-shadow: 0 0 0 3px rgba(241, 196, 15, 0.15);
+        }
+
+        .highlight-yellow .summary-label {
+            color: #b58900;
+            font-weight: 600;
+        }
+
+        .highlight-yellow .summary-value {
+            color: #8a6d00;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .modal-box {
+            background: #fff;
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+            border-radius: 12px;
+        }
+
+        .modal-title {
+            margin-bottom: 15px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn-cancel {
+            background: #ccc;
+            padding: 8px 14px;
+            border-radius: 6px;
+            border: none;
+        }
+
+        .btn-confirm {
+            background: #d9534f;
+            color: #fff;
+            padding: 8px 14px;
+            border-radius: 6px;
+            border: none;
+        }
+    </style>
+
+    <!-- End Shift Modal -->
+    <div id="endShiftModal" class="modal-overlay" style="display:none;">
+        <div class="modal-box animate__animated animate__fadeInDown">
+            <h3 class="modal-title">إنهاء الشيفت</h3>
+
+            <form action="{{ route('shift.end') }}" method="POST" onsubmit="prepareEndShiftForm()">
+                @csrf
+
+                <div class="form-group">
+                    <label for="safe_amount">كم في الخزنة؟</label>
+                    <input type="number" step="0.01" min="0" name="safe_amount" id="safe_amount"
+                        class="form-control" placeholder="اكتب المبلغ (اختياري)">
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel" onclick="closeEndShiftModal()">
+                        إلغاء
+                    </button>
+
+                    <button type="submit" class="btn-confirm">
+                        تأكيد إنهاء الشيفت
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openEndShiftModal() {
+            document.getElementById('endShiftModal').style.display = 'flex';
+        }
+
+        function closeEndShiftModal() {
+            document.getElementById('endShiftModal').style.display = 'none';
+        }
+
+        function prepareEndShiftForm() {
+            const input = document.getElementById('safe_amount');
+
+            // لو سابه فاضي → خلي القيمة 0
+            if (!input.value || input.value.trim() === '') {
+                input.value = 0;
+            }
+
+            return confirm('هل أنت متأكد من إنهاء الشيفت؟');
+        }
+    </script>
+
 @endsection

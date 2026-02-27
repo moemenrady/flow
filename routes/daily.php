@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\ShiftAdminController;
 use App\Http\Controllers\ShiftController;
+use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth')->group(function () {
 

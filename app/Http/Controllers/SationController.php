@@ -6,11 +6,13 @@ use App\Models\FullDayHour;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\SessionPurchase;
+use App\Models\SetionNotAdded;
 use App\Models\Shift;
 use App\Models\SystemAction;
 use App\Models\Visit;
 use App\Services\ShiftService;
 use App\Models\Hall;
+use App\Models\Subscription;
 use App\Models\Booking;
 use App\Support\InvoiceNumber;
 use Auth;
@@ -26,8 +28,99 @@ use App\Models\ImportantProduct;
 
 class SationController extends Controller
 {
-public function split(Request $request)
-{
+  public function start_for_late(Request $request)
+  {
+    // ✅ تحقق من البيانات الأساسية
+    $request->validate([
+      'name' => [
+        'required',
+        'string',
+        'regex:/^[\pL\s]+$/u',
+        'min:3',
+        'max:50',
+      ],
+      'phone' => [
+        'required',
+        'regex:/^(010|011|012|015)[0-9]{8}$/'
+      ],
+      "persons" => ["required", "integer", "min:1"],
+    ], [
+      'name.required' => 'من فضلك أدخل اسم العميل',
+      'name.string' => 'الاسم يجب أن يكون نصًا',
+      'name.regex' => 'الاسم يجب أن يحتوي على حروف فقط',
+      'name.min' => 'الاسم يجب أن لا يقل عن 3 أحرف',
+      'name.max' => 'الاسم يجب أن لا يزيد عن 50 حرفًا',
+      'phone.required' => 'من فضلك أدخل رقم الهاتف',
+      'phone.regex' => 'ادخل رقم مصري صحيح (11 رقم ويبدأ بـ 010 أو 011 أو 012 أو 015)',
+      'persons.required' => 'ادخل عدد الأشخاص',
+    ]);
+
+    $phone = $request->input('phone');
+    $name = $request->input('name');
+    $persons = $request->input('persons');
+
+    try {
+      // ✅ تحقق لو العميل موجود، أو أنشئه
+      $client = Client::firstOrCreate(
+        ['phone' => $phone],
+        [
+          'name' => $name,
+          'age' => $request->input('age'),
+          'specialization_id' => $request->input('specialization_id'),
+          'education_stage_id' => $request->input('education_stage_id'),
+        ]
+      );
+
+      // ✅ تحقق من وجود جلسة نشطة بالفعل
+      $hasActive = Sation::where('client_id', $client->id)
+        ->where('status', 'active')
+        ->exists();
+
+      if ($hasActive) {
+        return redirect()->back()->with('error', "هذا العميل ({$client->name}) لديه جلسة نشطة بالفعل");
+      }
+      // ✅ إنشاء الجلسة الجديدة
+      $startTime = Carbon::parse($request->input('session_time'))->format('Y-m-d H:i:s');
+      $session = Sation::create([
+        'client_id' => $client->id,
+        'persons' => $persons,
+        'start_time' => $startTime,
+        'status' => 'active',
+      ]);
+
+
+      // ✅ حذف الـ SetionNotAdded المرتبطة
+      if ($request->filled('session_id')) {
+        SetionNotAdded::where('id', $request->session_id)->delete();
+      }
+
+      // ✅ سجل العملية في SystemAction
+      SystemAction::create([
+        'user_id' => Auth::id(),
+        'action' => SystemActionType::START_SESSION->value,
+        'actionable_type' => Sation::class,
+        'actionable_id' => $session->id,
+        'note' => "بدء جلسة جديدة للعميل: {$client->name}",
+        'meta' => json_encode([
+          'persons' => $persons,
+          'client_id' => $client->id,
+          'client_phone' => $client->phone,
+        ]),
+        'ip' => $request->ip(),
+        'source' => 'web',
+      ]);
+
+      // ✅ إعادة التوجيه مع رسالة نجاح
+      return redirect()->back()->with('success', "تم بدء الجلسة بنجاح للعميل {$client->name}");
+
+    } catch (\Exception $e) {
+      \Log::error('Session store error: ' . $e->getMessage(), ['exception' => $e]);
+      return redirect()->back()->with('error', 'حدث خطأ أثناء معالجة الطلب، الرجاء المحاولة لاحقًا');
+    }
+  }
+
+  public function split(Request $request)
+  {
     // ✅ تحقق من وجود شيفت مفتوح
     $user = Auth::user();
     $openShift = Shift::where('user_id', $user->id)->whereNull('end_time')->first();
@@ -45,8 +138,9 @@ public function split(Request $request)
       'hours' => 'required|numeric|min:0',
       'items' => 'nullable|array',
       'items.*' => 'nullable|integer|min:0', // القيم (الكميات)
+      'payment_type' => 'nullable|string'
     ]);
-
+    $paymentType = $request->input('payment_type');
     // ✅ تحقق إضافي: لازم يكون فيه ساعات أو مشتريات
     $submittedItems = $request->input('items', []);
     $hasItems = collect($submittedItems)->filter(function ($qty) {
@@ -91,7 +185,8 @@ public function split(Request $request)
       foreach ($submittedItems as $prodIdStr => $qty) {
         $prodId = intval($prodIdStr);
         $qty = intval($qty);
-        if ($qty <= 0) continue;
+        if ($qty <= 0)
+          continue;
 
         // حاول إيجاد السطر المقابل في مشتريات الجلسة الأصلية
         $parentPurchase = $parentSession->purchases->firstWhere('product_id', $prodId);
@@ -142,7 +237,8 @@ public function split(Request $request)
       foreach ($submittedItems as $prodIdStr => $qty) {
         $prodId = intval($prodIdStr);
         $qty = intval($qty);
-        if ($qty <= 0) continue;
+        if ($qty <= 0)
+          continue;
 
         // lock product row to avoid concurrent stock changes
         $product = Product::where('id', $prodId)->lockForUpdate()->first();
@@ -201,6 +297,7 @@ public function split(Request $request)
         'hours' => $billableHours,
         'hourly_rate' => $hourly_rate,
         'purchases' => json_encode($purchasesForInvoice),
+        'payment_type' => $paymentType,
       ]);
       // ===================================================================
 
@@ -250,7 +347,7 @@ public function split(Request $request)
       DB::rollBack();
       return redirect()->back()->with('error', '❌ حدث خطأ أثناء تقسيم الجلسة: ' . $e->getMessage());
     }
-}
+  }
 
 
   public function show(Sation $session)
@@ -364,15 +461,138 @@ public function split(Request $request)
       ->latest()
       ->get();
     $halls = Hall::all();
-     $sessions_count = Sation::where('status', 'active')->sum('persons');
+    $sessions_count = Sation::where('status', 'active')->sum('persons');
 
     $private_sessions_count = Booking::where('status', 'in_progress')->count();
     return view('session.index-manager', compact('sessions', 'query', "halls", "private_sessions_count", "sessions_count"));
   }
-   // public function create()
+  // public function create()
   // {
   //   return view("session.create");
+
   // }
+
+  public function justStart(Request $request)
+  {
+    $request->validate([
+      'name' => [
+        'required',
+        'string',
+        'regex:/^[\pL\s]+$/u',
+        'min:3',
+        'max:50',
+      ],
+      'phone' => [
+        'required',
+        'regex:/^(010|011|012|015)[0-9]{8}$/'
+      ],
+      "persons" => ["required"],
+    ], [
+      'name.required' => 'من فضلك أدخل اسم العميل',
+      'name.string' => 'الاسم يجب أن يكون نصًا',
+      'name.regex' => 'الاسم يجب أن يحتوي على حروف فقط',
+      'name.min' => 'الاسم يجب أن لا يقل عن 3 أحرف',
+      'name.max' => 'الاسم يجب أن لا يزيد عن 50 حرفًا',
+      'phone.required' => 'من فضلك أدخل رقم الهاتف',
+      'phone.regex' => 'ادخل رقم مصري صحيح (11 رقم ويبدأ بـ 010 أو 011 أو 012 أو 015)',
+      'persons.required' => '',
+    ]);
+
+    $phone = $request->input('phone');
+    $name = $request->input('name');
+    $persons = $request->input('persons');
+
+    // helper to check if request expects JSON (AJAX)
+    $isJson = $request->wantsJson() || $request->ajax();
+
+    try {
+      // تحقق لو العميل موجود
+      $client = Client::firstOrCreate(
+        ['phone' => $phone],
+        [
+          'name' => $name,
+          'age' => $request->input('age'),
+          'specialization_id' => $request->input('specialization_id'),
+          'education_stage_id' => $request->input('education_stage_id'),
+        ]
+      );
+
+      // تحقق من الجلسة النشطة
+      $hasActive = Sation::where('client_id', $client->id)
+        ->where('status', 'active')
+        ->exists();
+
+      if ($hasActive) {
+        $msg = "هذا العميل ({$client->name}) لديه جلسة نشطة بالفعل";
+
+        if ($isJson) {
+          return response()->json([
+            'success' => false,
+            'error' => $msg,
+          ], 409);
+        }
+
+        return back()->with('error', $msg);
+      }
+
+      // إنشاء الجلسة الجديدة
+      $session = Sation::create([
+        'client_id' => $client->id,
+        'persons' => $persons,
+        'start_time' => now(),
+        'status' => 'active',
+      ]);
+
+      // ✅ حذف الـ SetionNotAdded المرتبطة
+      if ($request->filled('session_id')) {
+        SetionNotAdded::where('id', $request->session_id)->delete();
+      }
+
+      // سجل العملية
+      SystemAction::create([
+        'user_id' => Auth::id(),
+        'action' => SystemActionType::START_SESSION->value,
+        'actionable_type' => Sation::class,
+        'actionable_id' => $session->id,
+        'note' => "بدء جلسة جديدة للعميل: {$client->name}",
+        'meta' => json_encode([
+          'persons' => $persons,
+          'client_id' => $client->id,
+          'client_phone' => $client->phone,
+        ]),
+        'ip' => $request->ip(),
+        'source' => 'web',
+      ]);
+
+      // ✅ لو request جاي من AJAX نرجع JSON
+      if ($isJson) {
+        return response()->json([
+          'success' => true,
+          'message' => 'تم بدء الجلسة بنجاح',
+          'session' => $session,
+        ], 201);
+      }
+
+      // ✅ redirect عادي لو request عادي
+      return redirect()
+        ->route('session.index-manager')
+        ->with('success', 'تم إضافة الجلسة بنجاح');
+
+    } catch (\Exception $e) {
+      \Log::error('Session store error: ' . $e->getMessage(), ['exception' => $e]);
+
+      if ($isJson) {
+        return response()->json([
+          'success' => false,
+          'error' => 'حدث خطأ أثناء معالجة الطلب، الرجاء المحاولة لاحقًا'
+        ], 500);
+      }
+
+      return to_route("error.create");
+    }
+  }
+
+
   public function storeFromManager(Request $request)
   {
     // input validated phone
@@ -431,7 +651,26 @@ public function split(Request $request)
 
           return back()->with('error', $msg);
         }
+        $forceStart = $request->boolean('session_for_subscriber');
+        // لو مفيش force start نتحقق من الاشتراك
+        if (!$forceStart) {
 
+          $activeSub = Subscription::where("client_id", $client->id)
+            ->where("is_active", true)
+            ->first();
+
+          if ($activeSub) {
+
+            return back()
+              ->with('client_has_active_sub', 'العميل لديه اشتراك نشط بالفعل.')
+              ->with('active_subscription_id', $activeSub->id)
+              ->with('return_phone', $phone)
+              ->with('return_name', $name)
+              ->with('return_persons', $persons);
+
+          }
+
+        }
         // لا توجد جلسة نشطة -> إنشاء جلسة جديدة للعميل الموجود
         $session = Sation::create([
           'client_id' => $client->id,
@@ -467,13 +706,13 @@ public function split(Request $request)
         return redirect()->route('session.index-manager')->with('success', 'تم إضافة الجلسة بنجاح');
       }
 
-$client = Client::create([
-    'phone' => $phone,
-    'name' => $name,
-    'age' => $request->input('age'),
-    'specialization_id' => $request->input('specialization_id'),
-    'education_stage_id' => $request->input('education_stage_id'),
-]);
+      $client = Client::create([
+        'phone' => $phone,
+        'name' => $name,
+        'age' => $request->input('age'),
+        'specialization_id' => $request->input('specialization_id'),
+        'education_stage_id' => $request->input('education_stage_id'),
+      ]);
 
       // Log → إضافة عميل جديد
       SystemAction::create([
@@ -540,7 +779,7 @@ $client = Client::create([
 
 
 
-  
+
   public function store(Request $request)
   {
 
@@ -721,11 +960,12 @@ $client = Client::create([
       'hours' => 'required|numeric|min:0',
       'hourly_rate' => 'required|numeric|min:0',
       'purchases' => 'nullable|string',
-      
+      'payment_type' => 'nullable|string',
     ]);
     $hours = $request->input('hours');
     $hourlyRate = $request->input('hourly_rate');
     $purchases = json_decode($request->input('purchases', '[]'), true);
+    $payment_type = $request->input('payment_type');
 
     // تحقق إضافي: إذا الساعات صفر والمشتريات فارغة → منع العملية
     if ($hours == 0 && empty($purchases)) {
@@ -736,7 +976,7 @@ $client = Client::create([
       return redirect()->back()
         ->with('error', 'سعر الساعه للنظام صفر');
     }
- if (!empty($purchases)) {
+    if (!empty($purchases)) {
       foreach ($purchases as $idx => $item) {
         // توقع الحقول: product_id, qty, price, name, cost (حسب ما ترسل الواجهة)
         $productId = $item['product_id'] ?? null;
@@ -788,12 +1028,9 @@ $client = Client::create([
         'total' => 0,
       ]);
 
-      $total = 0;
 
       // 2. إضافة ساعات الجلسة
       $sessionItemTotal = $hours * $hourlyRate;
-      $total += $sessionItemTotal;
-
       if ($hours > 0) {
         InvoiceItem::create([
           'invoice_id' => $invoice->id,
@@ -809,39 +1046,71 @@ $client = Client::create([
       }
 
       // 3. إضافة المشتريات
-      foreach ($purchases as $item) {
-        $itemTotal = $item['price'] * $item['qty'];
-        $total += $itemTotal;
+      $purchasesTotal = 0;        // إجمالي سعر البيع
+      $purchasesCostTotal = 0;    // إجمالي التكلفة
 
-        // إضافة عنصر الفاتورة
-        InvoiceItem::create([
-          'invoice_id' => $invoice->id,
-          'item_type' => 'product',
-          'product_id' => $item['product_id'],
-          'name' => $item['name'],
-          'qty' => $item['qty'],
-          'price' => $item['price'],
-          'cost' => $item['cost'],
-          'total' => $itemTotal,
-          'description' => null,
-        ]);
+      if (!empty($purchases) && is_array($purchases)) {
 
-        // ↓↓ تقليل الكمية من جدول المنتجات ↓↓
-        $product = Product::find($item['product_id']);
-        if ($product) {
-          $product->quantity -= $item['qty'];
+        foreach ($purchases as $item) {
 
-          // تأكد ماينزلش تحت الصفر
-          if ($product->quantity < 0) {
-            $product->quantity = 0;
+          $productId = $item['product_id'] ?? $item['id'] ?? null;
+          $qty = $item['qty'] ?? 1;
+
+          if (!$productId)
+            continue;
+
+          // جلب المنتج
+          $product = Product::find($productId);
+          if (!$product)
+            continue;
+
+          // ❌ تأكد الكمية المطلوبة أقل من المتاحة
+          if ($qty > $product->quantity) {
+            return redirect()->back()->with(
+              'error',
+              "المنتج {$product->name} متوفر منه فقط {$product->quantity}، والمطلوب {$qty}."
+            );
           }
 
-          $product->save();
-        }
-      }
+          // بيانات الحساب
+          $price = $product->price;
+          $cost = $product->cost;
+          $itemTotal = $price * $qty;      // ← إجمالي سعر البيع للصنف
+          $itemCostTotal = $cost * $qty;   // ← إجمالي التكلفة للصنف
 
+          // إجماليات كل المشتريات
+          $purchasesTotal += $itemTotal;
+          $purchasesCostTotal += $itemCostTotal;
+
+          // 🧾 إضافة عنصر الفاتورة
+          InvoiceItem::create([
+            'invoice_id' => $invoice->id,
+            'item_type' => 'product',
+            'product_id' => $product->id,
+            'subscription_id' => null,
+            'booking_id' => $booking->id ?? null,
+            'session_id' => null,
+            'name' => $product->name,
+            'qty' => $qty,
+            'price' => $price,
+            'cost' => $cost,            // ← تكلفة الوحدة
+            'total' => $itemTotal,       // ← إجمالي السعر (بيع)
+            'description' => 'منتج مضاف عند إنهاء الحجز',
+          ]);
+
+          // 🧮 خصم الكمية من المخزون
+          $product->decrement('quantity', $qty);
+
+          if ($product->quantity < 0) {
+            $product->quantity = 0;
+            $product->save();
+          }
+        }
+
+      }
+      $total = $sessionItemTotal += $purchasesTotal;
       // 4. تحديث الفاتورة بالمجموع النهائي
-      $invoice->update(['total' => $total]);
+      $invoice->update(['total' => $total, 'profit' => $total - $purchasesCostTotal]);
 
       // 5. تحديث حالة الجلسة إذا كانت هناك ساعات أو مشتريات
 
@@ -883,6 +1152,7 @@ $client = Client::create([
         'end_session',
         $invoice->id,
         $invoice->total,
+        $payment_type,
         null,
         "إنهاء جلسة رقم {$session->id}"
       );
@@ -892,6 +1162,7 @@ $client = Client::create([
         'end_session',
         $invoice->id,
         $invoice->total,
+        $payment_type,
         null,
         "إنهاء جلسة رقم {$session->id}"
       );
@@ -992,21 +1263,22 @@ $client = Client::create([
       ->get();
 
     return response()->json($sessions);
-  }public function updateStartTime(Request $request, Sation $session)
-{
+  }
+  public function updateStartTime(Request $request, Sation $session)
+  {
     $request->validate([
-        'start_time' => 'required|date',
+      'start_time' => 'required|date',
     ]);
-
     // تحقق إن الجلسة مفتوحة — اعتبارات متعددة لحالة الإغلاق
-    if ($session->end_time !== null
-        || ($session->status ?? '') === 'finished'
-        || ($session->is_finished ?? false)
+    if (
+      $session->end_time !== null
+      || ($session->status ?? '') === 'finished'
+      || ($session->is_finished ?? false)
     ) {
-        return response()->json([
-            'status' => 'error',
-            'message' => '⚠️ هذه الجلسة تم إنهاؤها من قبل، لا يمكن التعديل عليها.',
-        ], 400);
+      return response()->json([
+        'status' => 'error',
+        'message' => '⚠️ هذه الجلسة تم إنهاؤها من قبل، لا يمكن التعديل عليها.',
+      ], 400);
     }
 
     $oldStart = $session->start_time ? Carbon::parse($session->start_time)->toIso8601String() : null;
@@ -1015,69 +1287,69 @@ $client = Client::create([
     DB::beginTransaction();
 
     try {
-        $session->update(['start_time' => $request->start_time]);
+      $session->update(['start_time' => $request->start_time]);
 
-        $user = Auth::user();
-        $openShift = Shift::where('user_id', $user->id)
-            ->whereNull('end_time')
-            ->first();
+      $user = Auth::user();
+      $openShift = Shift::where('user_id', $user->id)
+        ->whereNull('end_time')
+        ->first();
 
-        SystemAction::create([
-            'user_id' => $user->id,
-            'action' => SystemActionType::EDIT_SESSION_TIME->value,
-            'actionable_type' => Sation::class,
-            'actionable_id' => $session->id,
-            'note' => "تعديل موعد الجلسة رقم {$session->id}",
-            'meta' => json_encode([
-                'old_start_time' => $oldStart,
-                'new_start_time' => $newStart,
-            ]),
-            'shift_id' => $openShift?->id,
-            'ip' => $request->ip(),
-            'source' => 'web',
-        ]);
+      SystemAction::create([
+        'user_id' => $user->id,
+        'action' => SystemActionType::EDIT_SESSION_TIME->value,
+        'actionable_type' => Sation::class,
+        'actionable_id' => $session->id,
+        'note' => "تعديل موعد الجلسة رقم {$session->id}",
+        'meta' => json_encode([
+          'old_start_time' => $oldStart,
+          'new_start_time' => $newStart,
+        ]),
+        'shift_id' => $openShift?->id,
+        'ip' => $request->ip(),
+        'source' => 'web',
+      ]);
 
-        DB::commit();
+      DB::commit();
 
-        return response()->json([
-            'status' => 'success',
-            'message' => '✅ تم تعديل موعد الجلسة بنجاح',
-            'start_time' => $newStart,
-        ]);
+      return response()->json([
+        'status' => 'success',
+        'message' => '✅ تم تعديل موعد الجلسة بنجاح',
+        'start_time' => $newStart,
+      ]);
 
     } catch (\Throwable $e) {
-        DB::rollBack();
-        \Log::error('updateStartTime error: ' . $e->getMessage());
+      DB::rollBack();
+      \Log::error('updateStartTime error: ' . $e->getMessage());
 
-        return response()->json([
-            'status' => 'error',
-            'message' => '⚠️ حدث خطأ أثناء تعديل موعد الجلسة، حاول لاحقًا.',
-        ], 500);
+      return response()->json([
+        'status' => 'error',
+        'message' => '⚠️ حدث خطأ أثناء تعديل موعد الجلسة، حاول لاحقًا.',
+      ], 500);
     }
-}
+  }
 
-public function adjustStartTime(Request $request, Sation $session)
-{
+  public function adjustStartTime(Request $request, Sation $session)
+  {
     $request->validate([
-        'amount' => 'required|integer|min:1',
-        'unit' => 'required|in:minutes,hours',
-        'direction' => 'required|in:forward,backward',
+      'amount' => 'required|integer|min:1',
+      'unit' => 'required|in:minutes,hours',
+      'direction' => 'required|in:forward,backward',
     ]);
 
     // تحقق إن الجلسة مفتوحة — نفس الشروط كـ updateStartTime
-  if ($session->end_time !== null || $session->status === 'closed') {
-        return response()->json([
-            'status' => 'error',
-            'message' => '⚠️ هذه الجلسة تم إنهاؤها من قبل، لا يمكن التعديل عليها.',
-        ], 400);
+    if ($session->end_time !== null || $session->status === 'closed') {
+      return response()->json([
+        'status' => 'error',
+        'message' => '⚠️ هذه الجلسة تم إنهاؤها من قبل، لا يمكن التعديل عليها.',
+      ], 400);
     }
 
     // تأكد أن هناك start_time صالح
     if (empty($session->start_time)) {
-        return response()->json([
-            'status' => 'error',
-            'message' => '⚠️ لا يوجد وقت بداية مسجل لهذه الجلسة، لا يمكن التعديل.',
-        ], 400);
+      return response()->json([
+        'status' => 'error',
+        'message' => '⚠️ لا يوجد وقت بداية مسجل لهذه الجلسة، لا يمكن التعديل.',
+      ], 400);
     }
 
     $oldStart = Carbon::parse($session->start_time);
@@ -1085,54 +1357,54 @@ public function adjustStartTime(Request $request, Sation $session)
 
     // تعديل الوقت حسب الاتجاه
     if ($request->direction === 'forward') {
-        $newStart->{$request->unit === 'minutes' ? 'addMinutes' : 'addHours'}($request->amount);
+      $newStart->{$request->unit === 'minutes' ? 'addMinutes' : 'addHours'}($request->amount);
     } else {
-        $newStart->{$request->unit === 'minutes' ? 'subMinutes' : 'subHours'}($request->amount);
+      $newStart->{$request->unit === 'minutes' ? 'subMinutes' : 'subHours'}($request->amount);
     }
 
     DB::beginTransaction();
     try {
-        $session->update([
-            'start_time' => $newStart->toDateTimeString(),
-        ]);
+      $session->update([
+        'start_time' => $newStart->toDateTimeString(),
+      ]);
 
-        $user = Auth::user();
-        $openShift = Shift::where('user_id', $user->id)
-            ->whereNull('end_time')
-            ->first();
+      $user = Auth::user();
+      $openShift = Shift::where('user_id', $user->id)
+        ->whereNull('end_time')
+        ->first();
 
-        SystemAction::create([
-            'user_id' => $user->id,
-            'action' => SystemActionType::EDIT_SESSION_TIME->value,
-            'actionable_type' => Sation::class,
-            'actionable_id' => $session->id,
-            'note' => "تعديل موعد الجلسة رقم {$session->id} بـ {$request->amount} {$request->unit} ({$request->direction})",
-            'meta' => json_encode([
-                'old_start_time' => $oldStart->toIso8601String(),
-                'new_start_time' => $newStart->toIso8601String(),
-                'direction' => $request->direction,
-            ]),
-            'shift_id' => $openShift?->id,
-            'ip' => request()->ip(),
-            'source' => 'web',
-        ]);
+      SystemAction::create([
+        'user_id' => $user->id,
+        'action' => SystemActionType::EDIT_SESSION_TIME->value,
+        'actionable_type' => Sation::class,
+        'actionable_id' => $session->id,
+        'note' => "تعديل موعد الجلسة رقم {$session->id} بـ {$request->amount} {$request->unit} ({$request->direction})",
+        'meta' => json_encode([
+          'old_start_time' => $oldStart->toIso8601String(),
+          'new_start_time' => $newStart->toIso8601String(),
+          'direction' => $request->direction,
+        ]),
+        'shift_id' => $openShift?->id,
+        'ip' => request()->ip(),
+        'source' => 'web',
+      ]);
 
-        DB::commit();
+      DB::commit();
 
-        return response()->json([
-            'status' => 'success',
-            'message' => '✅ تم تعديل الموعد بنجاح، سيتم تحديث الصفحة...',
-            'start_time' => $newStart->toIso8601String(),
-        ]);
+      return response()->json([
+        'status' => 'success',
+        'message' => '✅ تم تعديل الموعد بنجاح، سيتم تحديث الصفحة...',
+        'start_time' => $newStart->toIso8601String(),
+      ]);
     } catch (\Throwable $e) {
-        DB::rollBack();
-        \Log::error('adjustStartTime error: ' . $e->getMessage());
-        return response()->json([
-            'status' => 'error',
-            'message' => '❌ حدث خطأ أثناء تعديل الموعد، حاول مجددًا.',
-        ], 500);
+      DB::rollBack();
+      \Log::error('adjustStartTime error: ' . $e->getMessage());
+      return response()->json([
+        'status' => 'error',
+        'message' => '❌ حدث خطأ أثناء تعديل الموعد، حاول مجددًا.',
+      ], 500);
     }
-}
+  }
 
 
 

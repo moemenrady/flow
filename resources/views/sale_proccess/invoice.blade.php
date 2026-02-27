@@ -592,6 +592,20 @@
                     </div>
                 @endforeach
             </div>
+<!-- Stock Error Box -->
+<div id="stockErrorBox" style="
+    display:none;
+    background:#ffe5e5;
+    border:1px solid #ffb3b3;
+    color:#8b0000;
+    padding:16px;
+    border-radius:12px;
+    margin-bottom:12px;
+    box-shadow:0 4px 12px rgba(0,0,0,.08);
+">
+    <strong id="stockErrorTitle"></strong>
+    <ul id="stockErrorList" style="margin:12px 0 0; padding-right:18px;"></ul>
+</div>
 
             <!-- زر إتمام الفاتورة (الـ form الرئيسي) -->
             <form id="invoiceForm" style="margin-top:8px;">
@@ -700,7 +714,34 @@
                     alert('انتهت الجلسة (CSRF). أعد تحميل الصفحة ثم أعد المحاولة.');
                 } else if (response.status === 403) {
                     alert(data.message || 'لا تملك صلاحية لتنفيذ هذا الإجراء.');
-                } else {
+                }
+                // نقص في المخزون
+if (data && data.shortages) {
+    const box = document.getElementById('stockErrorBox');
+    const title = document.getElementById('stockErrorTitle');
+    const list = document.getElementById('stockErrorList');
+
+    title.textContent = data.message || 'حدث خطأ في المخزون';
+    list.innerHTML = '';
+
+    data.shortages.forEach(p => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <strong>${p.product_name}</strong><br>
+            المطلوب: ${p.required} | المتاح: ${p.available} | 
+            <span style="color:#c00;font-weight:bold;">الناقص: ${p.missing}</span>
+        `;
+        li.style.marginBottom = '10px';
+        list.appendChild(li);
+    });
+
+    box.style.display = 'block';
+
+    // نزّل الصفحة تلقائيًا لمكان الرسالة
+    box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+}
+ else {
                     alert(data.message || `حدث خطأ في الخادم (كود ${response.status}).`);
                 }
             } catch (err) {
