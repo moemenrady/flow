@@ -471,10 +471,19 @@
             });
 
             // 3) اختيار طريقة الدفع
+            // تعديل اختيار طريقة الدفع ليشمل التأكيد والطباعة
             function choosePayment(type) {
                 document.getElementById('payment_type').value = type;
 
-                // ابعت الفورم الحقيقي
+                // إظهار رسالة تأكيد الطباعة
+                const confirmPrint = confirm("هل تريد طباعة الإيصال قبل إنهاء الحساب؟");
+
+                if (confirmPrint) {
+                    // استدعاء دالة الطباعة التي عرفتها في البداية
+                    printInvoice();
+                }
+
+                // إرسال الفورم في كلتا الحالتين (سواء طبع أو لا)
                 document.getElementById('checkoutForm').submit();
             }
         </script>
@@ -535,6 +544,121 @@
         {{-- استدعاء المودال من ملف خارجي --}}
         @include('session.modal.split_persons')
         <script>
+            function printInvoice() {
+                // استخدم بيانات الجلسة لأن الفاتورة لم تُنشأ بعد
+                const invoiceNumber = "جلسة #{{ $session->id }}";
+                const invoiceDate = "{{ now()->format('d/m/Y') }}";
+                const clientName = "{{ $session->client->name }}";
+                const totalAmount = "{{ $total }}"; // المتغير الموجود في صفحتك للحساب الإجمالي
+
+                // 2. بناء جدول المنتجات/الخدمات ديناميكياً
+                let itemsHtml = '';
+
+                // إضافة الاشتراكات
+                @if (isset($groupedItems['subscription']))
+                    @foreach ($groupedItems['subscription'] as $item)
+                        itemsHtml += `<tr><td>1</td><td>اشتراك: {{ $item->name }}</td><td>{{ $item->price }} ج</td></tr>`;
+                    @endforeach
+                @endif
+
+                // إضافة الجلسات الخاصة/الحجز
+                @if (isset($groupedItems['booking']))
+                    @foreach ($groupedItems['booking'] as $item)
+                        itemsHtml +=
+                            `<tr><td>1</td><td>حجز قاعة ({{ $bookingData->hall->name }})</td><td>{{ $item->total }} ج</td></tr>`;
+                    @endforeach
+                @endif
+
+                // إضافة الجلسات العادية
+                @if (isset($groupedItems['session']))
+                    @foreach ($groupedItems['session'] as $item)
+                        itemsHtml +=
+                            `<tr><td>{{ $item->qty }}</td><td>جلسة (ساعة)</td><td>{{ $item->total }} ج</td></tr>`;
+                    @endforeach
+                @endif
+
+                // إضافة المشتريات
+                @if ($purchaseItems->isNotEmpty())
+                    @foreach ($purchaseItems as $item)
+                        itemsHtml +=
+                            `<tr><td>{{ $item->qty }}</td><td>{{ $item->name }}</td><td>{{ $item->total }} ج</td></tr>`;
+                    @endforeach
+                @endif
+
+                // إضافة دفعات المقدم إن وجدت
+                @if (isset($groupedItems['deposit']))
+                    @foreach ($groupedItems['deposit'] as $item)
+                        itemsHtml += `<tr><td>1</td><td>مقدم حجز</td><td>{{ $item->total }} ج</td></tr>`;
+                    @endforeach
+                @endif
+
+                // 3. فتح نافذة الطباعة وتطبيق التصميم المطلوب
+                const printWindow = window.open('', '', 'width=400,height=600');
+                printWindow.document.write(`
+            <!DOCTYPE html>
+            <html lang="ar" dir="rtl">
+            <head>
+                <meta charset="UTF-8">
+                <title>إيصال Flow - ${invoiceNumber}</title>
+                <style>
+                    @page { size: 80mm auto; margin: 5mm; }
+                    body { font-family: "Tahoma", sans-serif; font-size: 13px; color: #000; direction: rtl; margin: 0; padding: 5px; }
+                    .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 8px; margin-bottom: 10px; }
+                    .header h2 { margin: 0; font-size: 22px; letter-spacing: 1px; }
+                    .header p { margin: 2px 0; font-size: 11px; }
+                    .info { font-size: 11px; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+                    .items { width: 100%; border-collapse: collapse; margin: 10px 0; }
+                    .items th, .items td { padding: 6px 2px; text-align: right; border-bottom: 1px dashed #eee; }
+                    .items th { font-size: 12px; border-bottom: 1px solid #000; }
+                    .items td:last-child, .items th:last-child { text-align: left; }
+                    .total { border-top: 2px dashed #000; margin-top: 10px; padding-top: 10px; text-align: center; font-size: 16px; font-weight: bold; }
+                    .footer { text-align: center; margin-top: 15px; font-size: 11px; border-top: 1px dashed #000; padding-top: 8px; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h2>Flow</h2>
+                    <p>مكانك المثالي للعمل والإبداع 💡</p>
+                </div>
+                <div class="info">
+                    <strong>رقم الفاتورة:</strong> ${invoiceNumber}<br>
+                    <strong>التاريخ:</strong> ${invoiceDate}<br>
+                </div>
+                <table class="items">
+                    <thead>
+                        <tr>
+                            <th style="width:15%">الكمية</th>
+                            <th style="width:55%">البيان</th>
+                            <th style="width:30%">المجموع</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${itemsHtml}
+                    </tbody>
+                </table>
+                <div class="total">
+                    الإجمالي: ${totalAmount} جينة
+                </div>
+                <div class="footer">
+                    شكرًا لزيارتك Flow 💼<br>
+                    نتطلع لرؤيتك مرة أخرى!
+                </div>
+                <script>
+                    window.onload = function() {
+                        window.print();
+                        // لا تغلق النافذة فوراً، اترك للمستخدم فرصة التحكم
+                        window.onafterprint = function() {
+                            window.close();
+                        };
+                    }
+                <\/script>
+            </body>
+            </html>
+        `);
+                printWindow.document.close();
+            }
+        </script>
+        <script>
             document.addEventListener('DOMContentLoaded', () => {
                 // قيم من السيرفر (عدل أسماء المتغيرات حسب ما في Blade)
                 const totalHoursPrice = Number(@json($hours_price ?? 0)); // إجمالي سعر الساعات للجلسة
@@ -543,7 +667,26 @@
                 const purchases = @json($purchasesArray ?? []);
 
                 // عناصر DOM داخل المودال
-                const splitForm = document.querySelector('#splitSessionModal form');
+                // ابحث عن مكان عمل submit للفورم الخاص بالحساب المنفصل وأضف عليه:
+                const splitFormElement = document.querySelector('#splitSessionModal form');
+
+                if (splitFormElement) {
+                    splitFormElement.addEventListener('submit', function(e) {
+                        // نمنع الإرسال اللحظي لنظهر التأكيد
+                        e.preventDefault();
+
+                        const confirmPrint = confirm("هل تريد طباعة إيصال لهذا الحساب المنفصل؟");
+
+                        if (confirmPrint) {
+                            // ملاحظة: دالة printInvoice تعتمد على بيانات Blade الحالية للجلسة كاملة
+                            // إذا كنت تريد طباعة بيانات "المجزأ" فقط ستحتاج لتعديل دالة الطباعة
+                            printInvoice();
+                        }
+
+                        // تنفيذ الإرسال بعد الطباعة أو الإلغاء
+                        this.submit();
+                    });
+                }
                 const splitPersonsInput = splitForm.querySelector('input[name="split_persons"]');
                 const itemsInputs = Array.from(splitForm.querySelectorAll('input[name^="items"]'));
                 const splitPriceValueEl = document.getElementById('splitPriceValue');
@@ -1159,9 +1302,9 @@
     @section('style')
         <style>
             /* ==========================
-                                                                                                                               Unified responsive stylesheet
-                                                                                                                               Desktop & Mobile (merged)
-                                                                                                                               ========================== */
+                                                                                                                                           Unified responsive stylesheet
+                                                                                                                                           Desktop & Mobile (merged)
+                                                                                                                                           ========================== */
 
             /* ===== Variables & reset ===== */
             :root {
@@ -1780,9 +1923,9 @@
             }
 
             /* ======================
-                                                                                                                               Responsive overrides
-                                                                                                                               Mobile-first approach
-                                                                                                                               ====================== */
+                                                                                                                                           Responsive overrides
+                                                                                                                                           Mobile-first approach
+                                                                                                                                           ====================== */
 
             /* Small screens (phones) */
             @media (max-width: 420px) {

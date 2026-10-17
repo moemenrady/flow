@@ -102,7 +102,7 @@ body::after {
 }
 
 /* Glow border */
-.dashboard-card::after {
+/* .dashboard-card::after {
     content: "";
     position: absolute;
     inset: 0;
@@ -116,17 +116,16 @@ body::after {
     mask-composite: exclude;
     opacity: 0;
     transition: opacity .5s;
-}
+} */
 
-.dashboard-card:hover::after {
+/* .dashboard-card:hover::after {
     opacity: 1;
 }
 
-/* Hover */
-.dashboard-card:hover {
-    transform: translateY(-10px) scale(1.02);
-    box-shadow: 0 25px 50px rgba(0, 0, 0, .25);
-}
+    .dashboard-card:hover {
+        transform: translateY(-10px) scale(1.02);
+        box-shadow: 0 25px 50px rgba(0, 0, 0, .25);
+    } */
 
 /* Icon */
 .dashboard-card img {
@@ -166,7 +165,7 @@ body::after {
 /* اللينكات */
 .navbar a {
     text-decoration: none;
-    color: #000;
+    color: #fff;
     font-weight: 600;
     padding: 10px 18px;
     border-radius: 6px;
@@ -181,7 +180,7 @@ body::after {
 }
 
 .navbar a:hover {
-    color: #000;
+    color: #fff;
     transform: scale(1.05);
 }
 
@@ -532,4 +531,144 @@ p {
 
 .custom-btn:hover {
     background: #F8E0C1;
+}
+
+/* تحسين منطقة العنوان العلوي */
+.dashboard-header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 30px;
+    background: rgba(81, 20, 27, 0.05);
+    /* لمسة خفيفة من لونك الأساسي */
+    border-radius: 30px;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(81, 20, 27, 0.1);
+}
+
+.dashboard-header h1 {
+    font-weight: 800;
+    color: var(--prime);
+    /* لونك الداكن ليظهر بوضوح */
+    font-size: 2.2rem;
+    margin-bottom: 8px;
+}
+
+.dashboard-header p {
+    color: var(--soft);
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+/* شبكة الكروت */
+.modern-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    padding-bottom: 40px;
+}
+
+/* الكرت بنمط فاتح وواضح */
+.modern-card {
+    background: #ffffff;
+    /* خلفية صلبة لضمان الوضوح */
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 20px;
+    padding: 25px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* تأثير هوفر خفيف جداً وغير متعب للجهاز */
+.modern-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--soft);
+    box-shadow: 0 8px 20px rgba(81, 20, 27, 0.1);
+    color: inherit;
+    /* منع تغيير لون النص بشكل مفاجئ */
+}
+
+/* الكرت المميز (بدء عملية بيع) */
+.modern-card.highlight {
+    background: var(--prime);
+    border: none;
+}
+
+.modern-card.highlight .card-body h3,
+.modern-card.highlight .card-body p {
+    color: #ffffff;
+}
+
+.modern-card.highlight .card-icon {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* الأيقونات */
+.card-icon {
+    background: rgba(81, 20, 27, 0.08);
+    width: 55px;
+    height: 55px;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.card-icon img {
+    width: 30px;
+    height: 30px;
+    /* لجعل الأيقونة السوداء تأخذ لونك الأساسي */
+    filter: sepia(100%) saturate(2000%) hue-rotate(330deg) brightness(40%) contrast(100%);
+}
+
+.modern-card.highlight .card-icon img {
+    filter: brightness(0) invert(1);
+    /* أيقونة بيضاء في الكرت الغامق */
+}
+
+/* نصوص الكروت */
+.card-body h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #222;
+    margin: 0 0 4px 0;
+}
+
+.card-body p {
+    font-size: 0.9rem;
+    color: #666;
+    margin: 0;
+}
+
+/* بادج التنبيه */
+.modern-badge {
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    background: #d63031;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: bold;
+    box-shadow: 0 4px 8px rgba(214, 48, 49, 0.3);
+    border: 2px solid #fff;
+}
+
+/* استجابة الموبايل */
+@media (max-width: 576px) {
+    .modern-card {
+        padding: 20px;
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .card-icon {
+        margin-bottom: 10px;
+    }
 }

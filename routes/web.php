@@ -36,7 +36,6 @@ Route::middleware('auth')->group(function () {
   })->middleware(['auth', 'verified',])->name('dashboard')->middleware("admin");
 
   Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-  Route::get('/profile', [ProfileController::class, 'create'])->name('history.index');
   Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
   Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
@@ -68,4 +67,6 @@ require __DIR__ . '/analytics.php';
 require __DIR__ . '/daily.php';
 require __DIR__ . '/invoices.php';
 require __DIR__ . '/setion_not_added.php';
-
+require __DIR__ . '/category.php';
+require __DIR__ . '/drafts_expenses.php';
+require __DIR__ . '/inventory.php';

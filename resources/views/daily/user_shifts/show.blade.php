@@ -95,7 +95,7 @@
                             <div class="action-body" style="display:none;">
                                 <div class="grid-two">
                                     <div>
-                                        <strong>نوع الحركة:</strong> {{ $action->action_type }}
+                                        <strong>نوع الحركة:</strong> {{ humanizeAction($action->action_type) }}
                                     </div>
                                     <div>
                                         <strong>فاتورة مرتبطة:</strong>
@@ -115,6 +115,93 @@
                                         <strong>ملاحظات:</strong>
                                         <div class="notes">{!! $action->notes ? nl2br(e($action->notes)) : '—' !!}</div>
                                     </div>
+
+                                    {{-- تفاصيل البيع المنفصل --}}
+                                    @if ($action->action_type === 'separate_sale' && $action->invoice && $action->invoice->items->count() > 0)
+                                        <div style="grid-column: 1 / -1; margin-top: 10px;">
+                                            <strong style="color:#2b8a3e;">🛒 تفاصيل المشتريات:</strong>
+                                            <table class="details-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>المنتج</th>
+                                                        <th>الكمية</th>
+                                                        <th>السعر</th>
+                                                        <th>الإجمالي</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach ($action->invoice->items as $item)
+                                                        <tr>
+                                                            <td>{{ $item->name }}</td>
+                                                            <td>{{ $item->qty }}</td>
+                                                            <td>{{ number_format($item->price, 2) }}</td>
+                                                            <td>{{ number_format($item->total, 2) }}</td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                                <tfoot>
+                                                    <tr>
+                                                        <th colspan="3" style="text-align: left;">إجمالي الفاتورة:</th>
+                                                        <th>{{ number_format($action->invoice->total, 2) }} ج.م</th>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
+                                        </div>
+                                    @endif
+
+                                    {{-- تفاصيل إنهاء الجلسة --}}
+                                    @if ($action->action_type === 'end_session' && $action->invoice)
+                                        @php
+                                            // بنجيب العنصر الخاص بالجلسة (لو مسجل فيه session_id)
+                                            $sessionItem = $action->invoice->items->whereNotNull('session_id')->first();
+                                            // المشتريات الأخرى جوه نفس فاتورة الجلسة
+                                            $purchaseItems = $action->invoice->items->whereNull('session_id');
+                                        @endphp
+
+                                        <div style="grid-column: 1 / -1; margin-top: 10px;">
+                                            @if ($sessionItem && $sessionItem->session)
+                                                <div
+                                                    style="background: #f8f9fa; padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #eee;">
+                                                    <strong style="color: #0056b3;">⏱️ وقت الجلسة:</strong><br>
+                                                    من:
+                                                    <strong>{{ \Carbon\Carbon::parse($sessionItem->session->start_time)->format('Y-m-d h:i A') }}</strong>
+                                                    <br>
+                                                    إلى:
+                                                    <strong>{{ \Carbon\Carbon::parse($sessionItem->session->end_time)->format('Y-m-d h:i A') }}</strong>
+                                                </div>
+                                            @endif
+
+                                            @if ($purchaseItems->count() > 0)
+                                                <strong style="color:#2b8a3e;">🛍️ المشتريات داخل الجلسة:</strong>
+                                                <table class="details-table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>المنتج</th>
+                                                            <th>الكمية</th>
+                                                            <th>السعر</th>
+                                                            <th>الإجمالي</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach ($purchaseItems as $item)
+                                                            <tr>
+                                                                <td>{{ $item->name }}</td>
+                                                                <td>{{ $item->qty }}</td>
+                                                                <td>{{ number_format($item->price, 2) }}</td>
+                                                                <td>{{ number_format($item->total, 2) }}</td>
+                                                            </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                </table>
+                                            @endif
+
+                                            <div style="margin-top: 8px; text-align: left;">
+                                                <strong>إجمالي الفاتورة (الجلسة + المشتريات):</strong> <span
+                                                    style="color: #2b8a3e;">{{ number_format($action->invoice->total, 2) }}
+                                                    ج.م</span>
+                                            </div>
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                         </li>
@@ -399,6 +486,30 @@
                 padding-right: 8px;
             }
         }
+        .details-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+    font-size: 13px;
+    background: #fff;
+}
+
+.details-table th, .details-table td {
+    border: 1px solid #e0e0e0;
+    padding: 8px 12px;
+    text-align: right;
+}
+
+.details-table th {
+    background: #f1f3f5;
+    color: #495057;
+    font-weight: 700;
+}
+
+.details-table tfoot th {
+    background: #e9ecef;
+    color: #212529;
+}
     </style>
 
     {{-- helpers (موجودين في الأصل) --}}
@@ -514,7 +625,7 @@
                         .textContent.replace(/[^\d\.\-]/g, '').trim() : '';
                     const invoiceLink = item.querySelector('a[href*="/invoices/"]');
                     const invoiceId = invoiceLink ? invoiceLink.textContent.replace('#', '')
-                    .trim() : '';
+                        .trim() : '';
                     const expenseLink = item.querySelector('a[href*="/expense_drafts/"]');
                     const expenseDraftId = expenseLink ? expenseLink.textContent.replace('#', '')
                         .trim() : '';

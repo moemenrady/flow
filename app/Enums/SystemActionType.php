@@ -14,6 +14,10 @@ enum SystemActionType: string
     case SESSION_CHECKOUT = 'session_checkout';
     case DELETE_SESSION = 'delete_session';
     case SALE_PROCESS = 'sale_process';
+    case REFUND_INVOICE = 'refund_invoice';
+    case INVENTORY_RESTOCK = 'inventory_restock';
+    case INVENTORY_WASTE = 'inventory_waste';
+    case INVENTORY_ADJUST = 'inventory_adjust';
     case ADD_EXPENSE = 'add_expense';
     case ADD_EXPENSE_DRAFT = 'add_expense_draft';
     case ADD_SUBSCRIPTION = 'add_subscription';

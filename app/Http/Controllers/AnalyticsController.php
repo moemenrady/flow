@@ -587,4 +587,260 @@ class AnalyticsController extends Controller
     ));
   }
 
+  /**
+   * صفحة التحليل الشامل (Executive Comprehensive Analytics)
+   */
+  public function comprehensive(Request $request)
+  {
+      $period = $request->get('period', 'today');
+      $customFrom = $request->get('from');
+      $customTo = $request->get('to');
+
+      // تحديد تواريخ الفلترة والفترة السابقة للمقارنة
+      switch ($period) {
+          case 'yesterday':
+              $startDate = Carbon::yesterday()->startOfDay();
+              $endDate = Carbon::yesterday()->endOfDay();
+              $prevStartDate = Carbon::yesterday()->subDay()->startOfDay();
+              $prevEndDate = Carbon::yesterday()->subDay()->endOfDay();
+              $periodLabel = 'أمس (' . $startDate->format('d/m/Y') . ')';
+              break;
+          case '7days':
+              $startDate = Carbon::now()->subDays(6)->startOfDay();
+              $endDate = Carbon::now()->endOfDay();
+              $prevStartDate = Carbon::now()->subDays(13)->startOfDay();
+              $prevEndDate = Carbon::now()->subDays(7)->endOfDay();
+              $periodLabel = 'آخر 7 أيام';
+              break;
+          case 'this_month':
+              $startDate = Carbon::now()->startOfMonth();
+              $endDate = Carbon::now()->endOfDay();
+              $prevStartDate = Carbon::now()->subMonth()->startOfMonth();
+              $prevEndDate = Carbon::now()->subMonth()->endOfMonth();
+              $periodLabel = 'هذا الشهر (' . $startDate->format('F Y') . ')';
+              break;
+          case 'last_month':
+              $startDate = Carbon::now()->subMonth()->startOfMonth();
+              $endDate = Carbon::now()->subMonth()->endOfMonth();
+              $prevStartDate = Carbon::now()->subMonths(2)->startOfMonth();
+              $prevEndDate = Carbon::now()->subMonths(2)->endOfMonth();
+              $periodLabel = 'الشهر السابق (' . $startDate->format('F Y') . ')';
+              break;
+          case 'custom':
+              if ($customFrom && $customTo) {
+                  $startDate = Carbon::parse($customFrom)->startOfDay();
+                  $endDate = Carbon::parse($customTo)->endOfDay();
+                  $diffDays = $startDate->diffInDays($endDate) ?: 1;
+                  $prevStartDate = (clone $startDate)->subDays($diffDays);
+                  $prevEndDate = (clone $startDate)->subSecond();
+                  $periodLabel = "من {$startDate->format('Y-m-d')} إلى {$endDate->format('Y-m-d')}";
+              } else {
+                  $startDate = Carbon::today()->startOfDay();
+                  $endDate = Carbon::now();
+                  $prevStartDate = Carbon::yesterday()->startOfDay();
+                  $prevEndDate = Carbon::yesterday()->endOfDay();
+                  $periodLabel = 'اليوم (' . $startDate->format('d/m/Y') . ')';
+              }
+              break;
+          case 'today':
+          default:
+              $period = 'today';
+              $startDate = Carbon::today()->startOfDay();
+              $endDate = Carbon::now();
+              $prevStartDate = Carbon::yesterday()->startOfDay();
+              $prevEndDate = Carbon::yesterday()->endOfDay();
+              $periodLabel = 'اليوم (' . $startDate->format('d/m/Y') . ')';
+              break;
+      }
+
+      // 1. الإيرادات الإجمالية والمقارنة مع الفترة السابقة
+      $totalRevenue = (float) Invoice::where('status', 'paid')
+          ->whereBetween('created_at', [$startDate, $endDate])
+          ->sum('total');
+
+      $prevRevenue = (float) Invoice::where('status', 'paid')
+          ->whereBetween('created_at', [$prevStartDate, $prevEndDate])
+          ->sum('total');
+
+      $revenueGrowth = $prevRevenue > 0 ? round((($totalRevenue - $prevRevenue) / $prevRevenue) * 100, 1) : null;
+
+      // عدد الفواتير ومتوسط قيمة الفاتورة
+      $invoicesCount = Invoice::where('status', 'paid')
+          ->whereBetween('created_at', [$startDate, $endDate])
+          ->count();
+      $averageOrderValue = $invoicesCount > 0 ? round($totalRevenue / $invoicesCount, 2) : 0;
+
+      // 2. تفصيل مصادر الإيرادات (Streams)
+      $sessionsRevenue = (float) Invoice::where('status', 'paid')
+          ->where('type', 'session')
+          ->whereBetween('created_at', [$startDate, $endDate])
+          ->sum('total');
+
+      $bookingsRevenue = (float) Invoice::where('status', 'paid')
+          ->where('type', 'booking')
+          ->whereBetween('created_at', [$startDate, $endDate])
+          ->sum('total');
+
+      $subscriptionsRevenue = (float) Invoice::where('status', 'paid')
+          ->where('type', 'subscription')
+          ->whereBetween('created_at', [$startDate, $endDate])
+          ->sum('total');
+
+      $directProductsRevenue = (float) Invoice::where('status', 'paid')
+          ->where('type', 'product')
+          ->whereBetween('created_at', [$startDate, $endDate])
+          ->sum('total');
+
+      $allProductsItemsRevenue = (float) InvoiceItem::where('item_type', 'product')
+          ->whereHas('invoice', fn($q) => $q->where('status', 'paid')->whereBetween('created_at', [$startDate, $endDate]))
+          ->sum('total');
+
+      // 3. المصروفات وتكلفة البضاعة والتوريدات
+      $operatingExpenses = (float) Expense::whereBetween('created_at', [$startDate, $endDate])
+          ->sum('amount');
+
+      $purchasesTotal = (float) \App\Models\PurchaseInvoice::whereBetween('invoice_date', [$startDate->toDateString(), $endDate->toDateString()])
+          ->sum('net_amount');
+
+      $cogsTotal = (float) InvoiceItem::where('item_type', 'product')
+          ->whereHas('invoice', fn($q) => $q->where('status', 'paid')->whereBetween('created_at', [$startDate, $endDate]))
+          ->sum(DB::raw('cost * qty'));
+
+      // صافي الربح = الإيرادات - المصروفات التشغيلية - تكلفة المشتريات والتوريدات
+      $netProfit = $totalRevenue - $operatingExpenses - $purchasesTotal;
+      $profitMargin = $totalRevenue > 0 ? round(($netProfit / $totalRevenue) * 100, 1) : 0;
+
+      // 4. بيانات المخطط البياني الزمني (Timeline Chart)
+      $chartLabels = [];
+      $chartRevenueData = [];
+      $chartExpensesData = [];
+
+      $driver = DB::connection()->getDriverName();
+      $isSqlite = $driver === 'sqlite';
+      $hourExpr = $isSqlite ? "CAST(strftime('%H', created_at) AS INTEGER)" : "HOUR(created_at)";
+      $dateExpr = $isSqlite ? "date(created_at)" : "DATE(created_at)";
+
+      if (in_array($period, ['today', 'yesterday'])) {
+          $hourlyInvoices = Invoice::where('status', 'paid')
+              ->whereBetween('created_at', [$startDate, $endDate])
+              ->selectRaw("{$hourExpr} as hour, SUM(total) as rev")
+              ->groupBy('hour')
+              ->pluck('rev', 'hour')
+              ->toArray();
+
+          $hourlyExpenses = Expense::whereBetween('created_at', [$startDate, $endDate])
+              ->selectRaw("{$hourExpr} as hour, SUM(amount) as exp")
+              ->groupBy('hour')
+              ->pluck('exp', 'hour')
+              ->toArray();
+
+          for ($h = 0; $h < 24; $h++) {
+              $chartLabels[] = sprintf('%02d:00', $h);
+              $chartRevenueData[] = round((float)($hourlyInvoices[$h] ?? 0), 2);
+              $chartExpensesData[] = round((float)($hourlyExpenses[$h] ?? 0), 2);
+          }
+      } else {
+          $dailyInvoices = Invoice::where('status', 'paid')
+              ->whereBetween('created_at', [$startDate, $endDate])
+              ->selectRaw("{$dateExpr} as date, SUM(total) as rev")
+              ->groupBy('date')
+              ->pluck('rev', 'date')
+              ->toArray();
+
+          $dailyExpenses = Expense::whereBetween('created_at', [$startDate, $endDate])
+              ->selectRaw("{$dateExpr} as date, SUM(amount) as exp")
+              ->groupBy('date')
+              ->pluck('exp', 'date')
+              ->toArray();
+
+          $periodCursor = clone $startDate;
+          while ($periodCursor <= $endDate) {
+              $d = $periodCursor->format('Y-m-d');
+              $chartLabels[] = $periodCursor->format('d/m');
+              $chartRevenueData[] = round((float)($dailyInvoices[$d] ?? 0), 2);
+              $chartExpensesData[] = round((float)($dailyExpenses[$d] ?? 0), 2);
+              $periodCursor->addDay();
+          }
+      }
+
+      // 5. ساعات الذروة (Peak Hours)
+      $peakHoursRaw = Invoice::where('status', 'paid')
+          ->whereBetween('created_at', [$startDate, $endDate])
+          ->selectRaw("{$hourExpr} as hour, COUNT(*) as count, SUM(total) as revenue")
+          ->groupBy('hour')
+          ->orderByDesc('count')
+          ->get();
+
+      $peakHourFormatted = $peakHoursRaw->first() ? sprintf('%02d:00 - %02d:00', $peakHoursRaw->first()->hour, ($peakHoursRaw->first()->hour + 1) % 24) : 'لا توجد بيانات';
+
+      // 6. أفضل المنتجات مبيعاً وأرباحها
+      $topProducts = InvoiceItem::where('item_type', 'product')
+          ->whereHas('invoice', fn($q) => $q->where('status', 'paid')->whereBetween('created_at', [$startDate, $endDate]))
+          ->selectRaw('product_id, name, SUM(qty) as total_qty, SUM(total) as total_revenue, SUM(cost * qty) as total_cost')
+          ->groupBy('product_id', 'name')
+          ->orderByDesc('total_revenue')
+          ->limit(6)
+          ->get()
+          ->map(function ($item) {
+              $item->profit = $item->total_revenue - $item->total_cost;
+              $item->margin = $item->total_revenue > 0 ? round(($item->profit / $item->total_revenue) * 100, 1) : 0;
+              return $item;
+          });
+
+      // 7. الخامات الأكثر استهلاكاً من سجل حركات المخزون
+      $topInventoryConsumed = \App\Models\InventoryMovement::with('inventoryItem')
+          ->whereIn('type', ['sale', 'sale_deduct', 'waste'])
+          ->whereBetween('created_at', [$startDate, $endDate])
+          ->selectRaw('inventory_item_id, SUM(ABS(quantity)) as total_consumed')
+          ->groupBy('inventory_item_id')
+          ->orderByDesc('total_consumed')
+          ->limit(6)
+          ->get();
+
+      // 8. أداء الموظفين / الكاشير
+      $staffPerformance = Invoice::where('status', 'paid')
+          ->whereBetween('created_at', [$startDate, $endDate])
+          ->with('user')
+          ->selectRaw('created_by, COUNT(*) as invoices_count, SUM(total) as total_collected')
+          ->groupBy('created_by')
+          ->orderByDesc('total_collected')
+          ->limit(5)
+          ->get();
+
+      // 9. العملاء والزيارات
+      $totalVisits = \App\Models\Visit::whereBetween('created_at', [$startDate, $endDate])->count();
+      $newClients = \App\Models\Client::whereBetween('created_at', [$startDate, $endDate])->count();
+
+      return view('analytics.comprehensive', compact(
+          'period',
+          'periodLabel',
+          'startDate',
+          'endDate',
+          'totalRevenue',
+          'prevRevenue',
+          'revenueGrowth',
+          'invoicesCount',
+          'averageOrderValue',
+          'sessionsRevenue',
+          'bookingsRevenue',
+          'subscriptionsRevenue',
+          'directProductsRevenue',
+          'allProductsItemsRevenue',
+          'operatingExpenses',
+          'purchasesTotal',
+          'cogsTotal',
+          'netProfit',
+          'profitMargin',
+          'chartLabels',
+          'chartRevenueData',
+          'chartExpensesData',
+          'peakHourFormatted',
+          'peakHoursRaw',
+          'topProducts',
+          'topInventoryConsumed',
+          'staffPerformance',
+          'totalVisits',
+          'newClients'
+      ));
+  }
 }

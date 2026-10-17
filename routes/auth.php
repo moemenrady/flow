@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -33,17 +34,26 @@ Route::middleware('guest')->group(function () {
 });
 
 
+Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(function () {
+    // جلب البيانات والبحث (الـ Route الحالي لديك)
+    Route::get('/users/search', [UserController::class, 'ajaxSearch'])->name('users.ajaxSearch');
+    
+    // العمليات الإضافية (CRUD)
+    Route::post('/users', [UserController::class, 'store'])->name('users.store');        // إنشاء
+    Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');    // تعديل عام + الصلاحية
+    Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy'); // حذف
+});
 Route::middleware('auth')->group(function () {
 
-      Route::get('register', [RegisteredUserController::class, 'create'])
+  Route::get('register', [RegisteredUserController::class, 'create'])
     ->name('register')->middleware("admin");
-Route::get('/users', [RegisteredUserController::class, 'index'])->name('users.create')->middleware('admin');
+  Route::get('/users', [RegisteredUserController::class, 'index'])->name('users.create')->middleware('admin');
 
-  Route::post('register', [RegisteredUserController::class, 'store'])->middleware("admin");;
-Route::get('/users/ajax-search', [RegisteredUserController::class, 'ajaxSearch'])->name('users.ajaxSearch')->middleware('admin');
+  Route::post('register', [RegisteredUserController::class, 'store'])->middleware("admin");
+  Route::get('/users/ajax-search', [RegisteredUserController::class, 'ajaxSearch'])->name('users.ajaxSearch')->middleware('admin');
 
-Route::get('register/verify', [RegisteredUserController::class, 'showVerifyForm'])->name('register.verify.show');
-Route::post('register/verify', [RegisteredUserController::class, 'verifyCode'])->name('register.verify.post');
+  Route::get('register/verify', [RegisteredUserController::class, 'showVerifyForm'])->name('register.verify.show');
+  Route::post('register/verify', [RegisteredUserController::class, 'verifyCode'])->name('register.verify.post');
   // Route::get('verify-email', EmailVerificationPromptController::class)
   //   ->name('verification.notice');
 

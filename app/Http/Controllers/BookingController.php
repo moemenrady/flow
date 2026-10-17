@@ -1506,6 +1506,7 @@ public function start(Booking $booking)
       $purchasesCostTotal = 0;
 
       // ✅ إنشاء عناصر الفاتورة من المشتريات
+      $hasPurchases = false;
       if (!empty($purchases) && is_array($purchases)) {
 
         foreach ($purchases as $item) {
@@ -1517,14 +1518,14 @@ public function start(Booking $booking)
           $product = Product::find($productId);
           if (!$product)
             continue;
-          if ($qty > $product->quantity) {
+          if (!$product->hasRecipe() && $qty > $product->quantity) {
             return redirect()->back()->with(
               'error',
               "المنتج {$product->name} متوفر منه فقط {$product->quantity}، والمطلوب {$qty}."
             );
           }
-          $price = $product->price;
-          $cost = $product->cost;
+          $price = (float) $product->price;
+          $cost = (float) $product->actual_cost;
           $total = $price * $qty;
           $purchasesTotal += $total;
           $purchasesCostTotal += $cost * $qty; // ← مجموع تكلفة كل المنتجات
@@ -1543,12 +1544,12 @@ public function start(Booking $booking)
             'description' => 'منتج مضاف عند إنهاء الحجز',
           ]);
 
-          // 🧮 خصم الكمية من المخزون
-          $product->decrement('quantity', $qty);
-          if ($product->quantity < 0) {
-            $product->quantity = 0;
-            $product->save();
-          }
+          $hasPurchases = true;
+        }
+
+        // 🧮 خصم المخزون والخامات عبر خدمة المخزون المركزية مع تسجيل الحركات
+        if ($hasPurchases) {
+          app(\App\Services\InventoryService::class)->deductForInvoice($invoice);
         }
       }
 

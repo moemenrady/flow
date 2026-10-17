@@ -410,8 +410,12 @@ class SationController extends Controller
       // تأكد من عدد الأشخاص (fallback إلى 1 لو مفيش)
       $persons = max(1, (int) ($session->persons ?? 1));
 
-      // حساب سعر الساعات (عدد * أشخاص * سعر الساعة)
-      $hours_price = round($hours * $persons * $hourly_rate, 2);
+      $hours_price_befor_extra = round($hours * $persons * $hourly_rate, 2);
+      // زيادة الأفراد: فقط لو عدد الساعات 1 أو أكثر
+      $extra_per_person = ($hours >= 1) ? ($persons * 15) : 0;
+
+      // إجمالي السعر بعد الزيادة
+      $hours_price = $hours_price_befor_extra + $extra_per_person;
 
       // eager load للعلاقات المهمة (لو مش محملة)
       $session->loadMissing('purchases.product');
@@ -432,8 +436,11 @@ class SationController extends Controller
         'products_price',
         'total',
         'isFullDay',
-        'hourly_rate'
+        'hourly_rate',
+       
       ) + [
+         'purchaseItems' => $session->purchases, // تأكد من إرسال هذا
+        'groupedItems' => [], 
         'purchases' => $session->purchases,
         'importantProducts' => ImportantProduct::all(),
       ]);
@@ -1003,8 +1010,8 @@ class SationController extends Controller
             ->withInput();
         }
 
-        // تأكد توفر الكمية في المخزون
-        if ($product->quantity < $qtyRequested) {
+        // تأكد توفر الكمية في المخزون (للمنتجات بدون ريسبي)
+        if (!$product->hasRecipe() && $product->quantity < $qtyRequested) {
           return redirect()->back()
             ->with('error', "⚠️ الكمية المطلوبة من المنتج \"{$product->name}\" غير متوفرة (المطلوب: {$qtyRequested}، المتوفر: {$product->quantity}).")
             ->withInput();
@@ -1018,7 +1025,8 @@ class SationController extends Controller
         }
       }
     }
-    $invoice = DB::transaction(function () use ($session, $hours, $hourlyRate, $purchases, $openShift) {
+    try {
+      $invoice = DB::transaction(function () use ($session, $hours, $hourlyRate, $purchases, $openShift) {
 
       // 1. إنشاء الفاتورة
       $invoice = Invoice::create([
@@ -1064,17 +1072,14 @@ class SationController extends Controller
           if (!$product)
             continue;
 
-          // ❌ تأكد الكمية المطلوبة أقل من المتاحة
-          if ($qty > $product->quantity) {
-            return redirect()->back()->with(
-              'error',
-              "المنتج {$product->name} متوفر منه فقط {$product->quantity}، والمطلوب {$qty}."
-            );
+          // ❌ تأكد الكمية المطلوبة أقل من المتاحة (للمنتجات بدون ريسبي)
+          if (!$product->hasRecipe() && $qty > $product->quantity) {
+            throw new \RuntimeException("المنتج {$product->name} متوفر منه فقط {$product->quantity}، والمطلوب {$qty}.");
           }
 
           // بيانات الحساب
-          $price = $product->price;
-          $cost = $product->cost;
+          $price = (float) $product->price;
+          $cost = (float) $product->actual_cost;
           $itemTotal = $price * $qty;      // ← إجمالي سعر البيع للصنف
           $itemCostTotal = $cost * $qty;   // ← إجمالي التكلفة للصنف
 
@@ -1095,18 +1100,12 @@ class SationController extends Controller
             'price' => $price,
             'cost' => $cost,            // ← تكلفة الوحدة
             'total' => $itemTotal,       // ← إجمالي السعر (بيع)
-            'description' => 'منتج مضاف عند إنهاء الحجز',
+            'description' => 'منتج مضاف عند إنهاء الجلسة',
           ]);
-
-          // 🧮 خصم الكمية من المخزون
-          $product->decrement('quantity', $qty);
-
-          if ($product->quantity < 0) {
-            $product->quantity = 0;
-            $product->save();
-          }
         }
 
+        // 🧮 خصم المخزون والخامات عبر خدمة المخزون المركزية مع تسجيل الحركات
+        app(\App\Services\InventoryService::class)->deductForInvoice($invoice);
       }
       $total = $sessionItemTotal += $purchasesTotal;
       // 4. تحديث الفاتورة بالمجموع النهائي
@@ -1145,6 +1144,9 @@ class SationController extends Controller
       ]);
       return $invoice;
     });
+    } catch (\Throwable $e) {
+      return redirect()->back()->with('error', 'حدث خطأ أثناء إنهاء الجلسة: ' . $e->getMessage())->withInput();
+    }
 
 
     if ($invoice && !$isAdmin) {

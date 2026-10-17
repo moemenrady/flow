@@ -1,176 +1,233 @@
-@extends('layouts.app')
+@extends('layouts.appp')
 
-@section('page_title', 'قائمة الحجوزات')
+@section('page_title', 'قائمة المصروفات')
 
-@section('content')
+@section('styles')
+    <!-- استدعاء الثيم المظلم لـ Flatpickr ليتناسب مع تصميم النظام -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+
     <style>
-        /* زر الإضافة (لمعة) */
-        #addButton {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
+        /* ====== الهيدر وزر الإضافة ====== */
+        .page-header {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
-            text-decoration: none;
-            background: linear-gradient(120deg, var(--prime), var(--soft) );;
-            font-size: 48px;
-            font-weight: 600;
-            color: #FFFFFF;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, .12);
-            transition: transform .28s ease, box-shadow .28s ease, background .28s;
-            margin: 20px auto;
-            position: relative;
-            overflow: hidden;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
-        #addButton::before {
+        .page-title {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0;
+        }
+
+        /* زر الإضافة بتأثير اللمعة والنيون */
+        .btn-glow-add {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 24px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: #000;
+            font-weight: bold;
+            font-size: 1.1rem;
+            text-decoration: none;
+            overflow: hidden;
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        .btn-glow-add::before {
             content: "";
             position: absolute;
-            inset: -120% -30%;
-            background: linear-gradient(120deg, transparent 90%, rgba(255, 255, 255, .65) 50%, transparent 65%);
-            transform: translateX(-100%);
-            transition: transform .6s ease;
-            pointer-events: none;
+            top: 0;
+            left: -100%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+            transform: skewX(-20deg);
+            transition: 0.5s;
         }
 
-        #addButton:hover {
-            transform: translateY(-4px) scale(1.03);
-            background: var(--prime);
-            box-shadow: 0 14px 30px rgba(0, 0, 0, .18);
+        .btn-glow-add:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 25px rgba(0, 242, 254, 0.6);
+            color: #000;
         }
 
-        #addButton:hover::before {
-            transform: translateX(100%);
+        .btn-glow-add:hover::before {
+            left: 150%;
         }
 
-        /* البحث */
-        .search-box {
-            margin: 20px auto;
-            text-align: center;
+        /* ====== صندوق الفلاتر (زجاجي) ====== */
+        .glass-panel {
+            background: var(--card-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
         }
 
-        .search-box input {
-            padding: 14px 20px;
-            width: 450px;
-            max-width: 100%;
-            border-radius: 25px;
-            border: 1px solid #ddd;
-            font-size: 15px;
-            outline: none;
-            background: #fff;
-            transition: box-shadow .22s ease, border-color .22s;
-        }
-
-        .search-box input:focus {
-            border-color: #ffcb9a;
-            box-shadow: 0 0 8px rgba(255, 170, 80, 0.28);
-        }
-
-        /* filters */
-        .filters-box {
+        .filters-container {
             display: flex;
-            justify-content: flex-end;
             flex-wrap: wrap;
             gap: 20px;
-            margin-bottom: 18px;
-            align-items: center;
+            align-items: flex-end;
         }
 
-        /* checkboxes */
-        .form-check-lg .form-check-input {
-            width: 1.4em;
-            height: 1.4em;
-            margin-top: .1em;
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
         }
 
-        .form-check-lg .form-check-label {
-            font-size: 1em;
-            margin-right: .4em;
+        .filter-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 500;
         }
 
-        /* الجدول (الاجمالي) */
+        /* ستايل حقول الإدخال */
+        .glass-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            color: var(--text-main);
+            font-family: inherit;
+            transition: all 0.3s;
+            outline: none;
+        }
+
+        .glass-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.2);
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        .glass-input option {
+            background: #10141e;
+            color: #fff;
+        }
+
+        /* ====== الجدول الزجاجي ====== */
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+            background: var(--card-bg);
+            backdrop-filter: blur(15px);
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
-            border-radius: 12px;
-            overflow: hidden;
-            margin-top: 12px;
-            background: transparent;
+            text-align: center;
         }
 
         thead {
-            background: var(--prime);
+            background: rgba(0, 242, 254, 0.1);
         }
 
         thead th {
-            padding: 14px 12px;
-            text-align: center;
-            color: #FFFFFF;
-            font-size: 15px;
+            padding: 16px;
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 0.95rem;
+            border-bottom: 1px solid var(--glass-border);
         }
 
-        tbody {
-            background: transparent;
-        }
-
-        /* tbody شفاف كما طلبت */
         tbody tr {
-            border-bottom: 1px solid rgba(0, 0, 0, 0.03);
-            text-align: center;
-            transition: background .18s ease, transform .18s ease;
-            background: transparent;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
         }
 
         tbody td {
-            padding: 12px 10px;
-            text-align: center;
-            color: #333;
+            padding: 14px 16px;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            vertical-align: middle;
         }
 
-        /* hover effect on desktop rows */
         tbody tr:hover {
-            transform: translateY(-3px);
-            background: rgba(255, 247, 240, 0.6);
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
-            cursor: pointer;
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
 
-        /* badge styles */
-        .badge {
-            padding: 6px 10px;
-            border-radius: 10px;
-            display: inline-block;
-            font-size: 13px;
+        .btn-edit {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            background: rgba(180, 101, 218, 0.1);
+            color: var(--accent);
+            border: 1px solid rgba(180, 101, 218, 0.3);
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: 0.3s;
         }
 
-        .badge.scheduled {
-            background: #fff4d6;
-            color: #a46e00;
+        .btn-edit:hover {
+            background: var(--accent);
+            color: #fff;
+            box-shadow: 0 0 10px rgba(180, 101, 218, 0.4);
         }
 
-        .badge.due {
-            background: #ffe8e0;
-            color: #9b3b20;
+        /* انيميشن ظهور الصفوف */
+        .row-animate {
+            animation: fadeUp 0.4s ease both;
         }
 
-        .badge.in_progress {
-            background: #dbf7e9;
-            color: #11683e;
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
-        .badge.finished {
-            background: #e9eef7;
-            color: #1f3f7a;
+        /* حالة عدم وجود بيانات */
+        .no-results {
+            padding: 30px !important;
+            color: var(--text-muted) !important;
+            font-size: 1.1rem;
         }
 
-        .badge.cancelled {
-            background: #f5e9ee;
-            color: #8a3350;
-        }
+        /* ====== ريسبونسيف الموبايل (نظام الكروت) ====== */
+        @media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
 
-        /* card style on small screens (when table elements become block) */
-        @media (max-width:768px) {
+            .btn-glow-add {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .filter-group {
+                min-width: 100%;
+            }
 
             table,
             thead,
@@ -188,96 +245,58 @@
 
             tbody tr {
                 margin-bottom: 15px;
-                border: 1px solid #eee;
-                border-radius: 10px;
-                padding: 12px;
-                background: #fff;
-                box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
-                transform: none;
-                /* no lift on mobile for consistency */
-                animation: cardIn .28s ease both;
+                border: 1px solid var(--glass-border);
+                border-radius: 12px;
+                background: rgba(0, 0, 0, 0.2);
+                padding: 10px;
             }
 
             tbody td {
                 text-align: right;
-                padding: 8px 10px;
+                padding: 10px;
                 position: relative;
-                font-size: 14px;
+                padding-right: 40%;
+                /* مساحة للعنوان */
+                border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+            }
+
+            tbody td:last-child {
+                border-bottom: none;
+                text-align: center;
+                padding-right: 10px;
             }
 
             tbody td::before {
                 content: attr(data-label);
                 position: absolute;
-                left: 12px;
-                color: #666;
+                right: 15px;
+                top: 10px;
+                color: var(--primary);
+                font-weight: bold;
+                font-size: 0.85rem;
             }
-        }
-
-        /* subtle animations */
-        @keyframes fadeUp {
-            from {
-                opacity: 0;
-                transform: translateY(8px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes cardIn {
-            from {
-                opacity: 0;
-                transform: translateY(8px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .row-animate {
-            animation: fadeUp .32s ease both;
-        }
-
-        /* accessibility - reduced motion */
-        @media (prefers-reduced-motion: reduce) {
-
-            #addButton,
-            #addButton::before,
-            .row-animate {
-                transition: none;
-                animation: none;
-                transform: none !important;
-            }
-        }
-
-        /* nice spacing for container */
-        .container h1 {
-            margin-bottom: 8px;
-        }
-
-        /* small helper for no-results */
-        .no-results {
-            text-align: center;
-            color: #999;
-            padding: 18px 0;
         }
     </style>
+@endsection
 
-    <div class="container">
+@section('content')
+    <!-- الهيدر -->
+    <div class="page-header">
+        <h1 class="page-title">إدارة المصروفات</h1>
+        <a href="{{ route('expenses.create') }}" class="btn-glow-add">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path>
+            </svg>
+            إضافة مصروف جديد
+        </a>
+    </div>
 
-        <a href="{{ route('expenses.create') }}" id="addButton" title="إضافة مصروف">+</a>
-
-
-
-        <div class="filters-box">
-
-            <div>
-                <label class="form-label d-block mb-2">أنواع المصروف</label>
-                <select id="expenseTypeFilter" class="form-select" style="min-width:160px;">
+    <!-- الفلاتر -->
+    <div class="glass-panel">
+        <div class="filters-container">
+            <div class="filter-group">
+                <label>نوع المصروف</label>
+                <select id="expenseTypeFilter" class="glass-input">
                     <option value="">كل الأنواع</option>
                     @foreach ($expenseTypes as $type)
                         <option value="{{ $type->id }}">{{ $type->name }}</option>
@@ -285,19 +304,18 @@
                 </select>
             </div>
 
-            <!-- تقويم من إلى -->
-            <div>
-                <label class="form-label d-block mb-2">الفترة</label>
-                <input type="text" id="dateRange" class="form-control" style="min-width: 200px;"
-                    placeholder="اختر الفترة">
+            <div class="filter-group">
+                <label>تحديد الفترة (من - إلى)</label>
+                <input type="text" id="dateRange" class="glass-input" placeholder="اضغط لاختيار الفترة">
                 <input type="hidden" id="fromDateHidden">
                 <input type="hidden" id="toDateHidden">
             </div>
-
-
         </div>
+    </div>
 
-        <table aria-describedby="expense-list">
+    <!-- الجدول -->
+    <div class="table-responsive">
+        <table>
             <thead>
                 <tr>
                     <th>النوع</th>
@@ -306,165 +324,144 @@
                     <th>أضيف بواسطة</th>
                     <th>التاريخ</th>
                     <th>إجراء</th>
-
                 </tr>
             </thead>
             <tbody id="expenseTable">
                 <tr>
-                    <td colspan="5" class="text-center p-3">⏳ جاري التحميل...</td>
+                    <td colspan="6" class="text-center p-4" style="color: var(--primary);">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" class="spin-anim" style="vertical-align: middle;">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        جاري التحميل...
+                    </td>
                 </tr>
             </tbody>
         </table>
-
     </div>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+@endsection
 
+@push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script>
         const tableBody = document.getElementById("expenseTable");
         const expenseTypeFilter = document.getElementById("expenseTypeFilter");
-
         const fromInput = document.getElementById("fromDateHidden");
         const toInput = document.getElementById("toDateHidden");
 
         let params = new URLSearchParams();
 
-        /** ------------------------------------------------------------------
-         * رسم الصفوف داخل الجدول — والشغل كله هنا
-         * ------------------------------------------------------------------ */
+        // دالة رسم الصفوف
         function renderRows(data) {
-
-            // فضي الجدول
             tableBody.innerHTML = '';
 
-            // لو مفيش بيانات
             if (!data || data.length === 0) {
                 tableBody.innerHTML = `
                 <tr>
-                    <td colspan="5" class="no-results">❌ لا توجد نتائج</td>
+                    <td colspan="6" class="no-results">
+                        <svg width="40" height="40" fill="none" stroke="var(--text-muted)" stroke-width="1.5" viewBox="0 0 24 24" style="margin-bottom:10px; display:block; margin: 0 auto;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        لا توجد مصروفات مسجلة لهذه الفلاتر
+                    </td>
                 </tr>`;
                 return;
             }
 
-            // في بيانات
             data.forEach((exp, index) => {
-
                 const tr = document.createElement("tr");
-                tr.classList.add("row-animate"); // عشان CSS يشتغل
-                tr.style.animationDelay = `${index * 25}ms`;
+                tr.classList.add("row-animate");
+                tr.style.animationDelay = `${index * 50}ms`;
 
-                // تحويل التاريخ إلى Date object
                 const dateObj = new Date(exp.created_at);
-
-                // التاريخ: سنة - شهر - يوم (إنجليزي)
                 const datePart = dateObj.toLocaleDateString("en-CA", {
                     year: "numeric",
                     month: "2-digit",
-                    day: "2-digit",
+                    day: "2-digit"
                 });
-                // en-CA يعطي شكل: 2025-12-05 مباشرة
-
-                // الوقت: ساعة ودقيقة AM/PM (إنجليزي)
                 const timePart = dateObj.toLocaleTimeString("en-US", {
                     hour: "2-digit",
                     minute: "2-digit",
-                    hour12: true,
+                    hour12: true
                 });
 
-                // الشكل النهائي المعروض
-                const createdAt = `${datePart}<br><small style="color:#666;">${timePart}</small>`;
+                const createdAt =
+                    `${datePart}<br><small style="color:var(--text-muted); font-size:0.8rem;">${timePart}</small>`;
 
                 tr.innerHTML = `
-        <td data-label="النوع">${exp.expense_type_name}</td>
-        <td data-label="المبلغ">${exp.amount} ج.م</td>
-        <td data-label="الملاحظة">${exp.note ?? '-'}</td>
-        <td data-label="أضيف بواسطة">${exp.added_by}</td>
-        <td data-label="التاريخ">${createdAt}</td>
-        <td>
-          <a href="/expenses/${exp.id}/edit" class="btn btn-sm btn-outline-primary">
-              ✏️ تعديل
-          </a>
-        </td>
-
-    `;
-                tr.addEventListener("click", () => {
-                    window.location.href = `/expenses/${exp.id}/edit`;
-                });
+                    <td data-label="النوع"><strong>${exp.expense_type_name}</strong></td>
+                    <td data-label="المبلغ" style="color: #2ed573; font-weight: bold;">${exp.amount} ج.م</td>
+                    <td data-label="الملاحظة">${exp.note ?? '-'}</td>
+                    <td data-label="أضيف بواسطة">${exp.added_by}</td>
+                    <td data-label="التاريخ">${createdAt}</td>
+                    <td data-label="إجراء">
+                        <a href="/expenses/${exp.id}/edit" class="btn-edit">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            تعديل
+                        </a>
+                    </td>
+                `;
 
                 tableBody.appendChild(tr);
             });
         }
-        /** ------------------------------------------------------------------
-         * جلب البيانات من السيرفر (Ajax)
-         * ------------------------------------------------------------------ */
-        function fetchExpenses() {
 
+        // دالة جلب البيانات بالأجاكس
+        function fetchExpenses() {
             params = new URLSearchParams();
 
-            if (expenseTypeFilter.value)
-                params.append("expense_type_id", expenseTypeFilter.value);
+            if (expenseTypeFilter.value) params.append("expense_type_id", expenseTypeFilter.value);
+            if (fromInput.value) params.append("from", fromInput.value);
+            if (toInput.value) params.append("to", toInput.value);
 
-            if (fromInput.value)
-                params.append("from", fromInput.value);
-
-            if (toInput.value)
-                params.append("to", toInput.value);
-
-            // رسالة تحميل
-            tableBody.innerHTML = `
-            <tr>
-                <td colspan="5" class="text-center p-3">⏳ جاري التحميل...</td>
-            </tr>
-        `;
+            tableBody.innerHTML =
+                `<tr><td colspan="6" class="text-center p-4" style="color: var(--primary);">⏳ جاري جلب البيانات...</td></tr>`;
 
             fetch("{{ route('expense.ajaxSearch') }}?" + params.toString())
                 .then(res => res.json())
-                .then(data => {
-                    renderRows(data);
-                })
+                .then(data => renderRows(data))
                 .catch(err => {
                     console.error(err);
-                    tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="5" class="text-center p-3">⚠️ حدث خطأ، حاول مرة أخرى</td>
-                    </tr>`;
+                    tableBody.innerHTML =
+                        `<tr><td colspan="6" class="text-center p-4" style="color: #ff4757;">⚠️ حدث خطأ في الاتصال، يرجى المحاولة مرة أخرى</td></tr>`;
                 });
         }
 
-
-        /** ------------------------------------------------------------------
-         * فلترة نوع المصروف
-         * ------------------------------------------------------------------ */
+        // تفعيل الفلتر عند تغيير النوع
         expenseTypeFilter.addEventListener("change", fetchExpenses);
 
-
-        /** ------------------------------------------------------------------
-         * Flatpickr للتاريخ (من — إلى)
-         * ------------------------------------------------------------------ */
+        // إعداد التقويم (Flatpickr)
         flatpickr("#dateRange", {
             mode: "range",
             dateFormat: "Y-m-d",
+            disableMobile: "true", // عشان يفتح بشكل مريح عالموبايل
             onChange: function(selectedDates) {
-
-                // لو اختر تاريخين فقط
                 if (selectedDates.length === 2) {
-
-                    const from = selectedDates[0].toISOString().slice(0, 10);
-                    const to = selectedDates[1].toISOString().slice(0, 10);
-
-                    fromInput.value = from;
-                    toInput.value = to;
-
+                    // تصحيح التوقيت المحلي
+                    fromInput.value = selectedDates[0].toLocaleDateString('en-CA');
+                    toInput.value = selectedDates[1].toLocaleDateString('en-CA');
+                    fetchExpenses();
+                } else if (selectedDates.length === 0) {
+                    fromInput.value = "";
+                    toInput.value = "";
                     fetchExpenses();
                 }
             }
         });
 
-
-        /** ------------------------------------------------------------------
-         * تحميل البيانات أول مرة عند فتح الصفحة
-         * ------------------------------------------------------------------ */
+        // تشغيل الجلب عند فتح الصفحة
         window.addEventListener("DOMContentLoaded", fetchExpenses);
     </script>
+    <style>
+        .spin-anim {
+            animation: spin 1s linear infinite;
+        }
 
-@endsection
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+@endpush

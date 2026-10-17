@@ -12,6 +12,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/invoices/{invoice}', [InvoiceController::class, 'client_show'])->name('invoices.client.show');
     Route::get('/clients/{clientId}/invoices', [InvoiceController::class, 'clientInvoices'])->name('client.invoices');
     Route::get('/ajax/search', [InvoiceController::class, 'ajaxSearch'])->name('invoices.ajaxSearch');
+    Route::post('/invoices/{invoice}/refund', [InvoiceController::class, 'refund'])->name('invoices.refund');
 
 });
 

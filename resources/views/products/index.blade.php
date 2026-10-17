@@ -1,419 +1,437 @@
-@extends('layouts.app')
+@extends('layouts.appp')
 
-@section('page_title', 'المخزن')
+@section('page_title', 'إدارة المخزن')
 
-<style>
-    body {
-        font-family: "Tahoma", sans-serif;
-        background: linear-gradient(to bottom, #fff, #fce9d9);
-        margin: 0;
-        padding: 0;
-        color: #333;
-    }
+@section('styles')
+    <style>
+        /* الحاوية الرئيسية */
+        .inventory-container {
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
 
-    .container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 30px 20px;
-    }
-
-    /* العدادين */
-    .stats-box {
-        background: #fdf6f0;
-        padding: 20px;
-        border-radius: 15px;
-        text-align: center;
-        width: 220px;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-        font-size: 15px;
-        margin: 10px;
-        flex-shrink: 0;
-    }
-
-    .stats-box p:first-child {
-        margin: 0;
-        font-weight: bold;
-        color: #444;
-        font-size: 16px;
-    }
-
-    .stats-box p:last-child {
-        margin: 10px 0 0;
-        font-size: 22px;
-        color: #333;
-    }
-
-    /* زرار الإضافة */
-    #addButton {
-        width: 100px;
-        height: 100px;
-        border-radius: 50%;
-        border: none;
-        background: #ffcb9a;
-        font-size: 48px;
-        font-weight: bold;
-        cursor: pointer;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        transition: 0.3s;
-        margin: 0 40px;
-        flex-shrink: 0;
-    }
-
-    #addButton:hover {
-        background: #ffa94d;
-        transform: scale(1.05);
-    }
-
-    /* الصف الأول (عدادات + زرار) */
-    .header-row {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-wrap: wrap;
-        margin-bottom: 40px;
-    }
-
-    /* مربع البحث */
-    .search-box {
-        margin: 20px auto;
-        text-align: center;
-    }
-
-    .search-box input {
-        padding: 14px 20px;
-        width: 450px;
-        max-width: 100%;
-        border-radius: 25px;
-        border: 1px solid #ddd;
-        font-size: 15px;
-        outline: none;
-        transition: 0.2s;
-        background: #fff;
-    }
-
-    .search-box input:focus {
-        border-color: #ffcb9a;
-        box-shadow: 0 0 6px rgba(255, 170, 80, 0.5);
-    }
-
-    /* الجدول */
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        background: transparent;
-        border-radius: 12px;
-        overflow: hidden;
-        margin-top: 20px;
-    }
-
-    thead {
-        background: rgba(255, 224, 178, 0.8);
-    }
-
-    thead th {
-        padding: 16px 20px;
-        text-align: center;
-        font-size: 15px;
-        font-weight: bold;
-        color: #444;
-    }
-
-    tbody tr {
-        border-bottom: 1px solid #eee;
-        text-align: center;
-        transition: background 0.2s;
-    }
-
-    tbody tr:hover {
-        background: rgba(255, 247, 240, 0.7);
-    }
-
-    tbody td {
-        padding: 14px 18px;
-        font-size: 15px;
-        color: #333;
-    }
-
-    /* الموبايل */
-    @media (max-width: 768px) {
+        /* قسم الإحصائيات والهيدر */
         .header-row {
-            flex-direction: column;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
         }
 
-        #addButton {
-            width: 80px;
-            height: 80px;
-            font-size: 36px;
-            margin: 15px 0;
+        .glass-stats-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            padding: 20px 40px;
+            border-radius: 20px;
+            text-align: center;
+            min-width: 200px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
         }
 
-        .search-box input {
-            width: 100%;
+        .glass-stats-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
         }
 
-        table,
-
-        thead,
-
-        tbody,
-
-        th,
-
-        td,
-
-        tr {
+        .glass-stats-card .label {
             display: block;
-            width: 100%;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            font-weight: 500;
         }
 
-        thead {
-            display: none;
+        .glass-stats-card .value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--primary);
+            text-shadow: 0 0 10px rgba(0, 242, 254, 0.3);
         }
 
-        tbody tr {
-            margin-bottom: 15px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.9);
-        }
-
-        tbody td {
-            text-align: right;
-            padding: 8px 10px;
-            position: relative;
-            font-size: 14px;
-        }
-
-        tbody td::before {
-            content: attr(data-label);
-            position: absolute;
-            left: 10px;
+        /* زر الإضافة النيوني */
+        .btn-add-neon {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            color: #000;
+            font-size: 40px;
             font-weight: bold;
-            color: #666;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(0, 242, 254, 0.4);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
         }
-    }
-</style>
+
+        .btn-add-neon:hover {
+            transform: scale(1.1) rotate(90deg);
+            box-shadow: 0 0 35px rgba(0, 242, 254, 0.7);
+        }
+
+        /* صندوق البحث */
+        .search-wrapper {
+            position: relative;
+            max-width: 600px;
+            margin: 0 auto 40px;
+        }
+
+        .glass-search {
+            width: 100%;
+            padding: 15px 50px 15px 25px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 30px;
+            color: var(--text-main);
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .glass-search:focus {
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.2);
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+
+        /* الجدول الزجاجي */
+        .table-container {
+            background: var(--card-bg);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .glass-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+        }
+
+        .glass-table thead {
+            background: rgba(0, 242, 254, 0.1);
+        }
+
+        .glass-table th {
+            padding: 20px;
+            color: var(--primary);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+        }
+
+        .glass-table tbody tr {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .glass-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .glass-table td {
+            padding: 18px;
+            color: var(--text-main);
+            font-size: 0.95rem;
+        }
+
+        /* شارات التميز */
+        .badge-qty {
+            background: rgba(0, 242, 254, 0.15);
+            color: var(--primary);
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        /* 🗑️ زر الحذف الزجاجي الجديد داخل الجدول */
+        .btn-delete-table {
+            background: rgba(230, 57, 70, 0.15);
+            border: 1px solid rgba(230, 57, 70, 0.3);
+            color: #e63946;
+            padding: 6px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .btn-delete-table:hover {
+            background: #e63946;
+            color: #fff;
+            box-shadow: 0 0 15px rgba(230, 57, 70, 0.5);
+            transform: scale(1.05);
+        }
+
+        /* ريسبونسيف الموبايل */
+        @media (max-width: 768px) {
+            .header-row {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .btn-add-neon {
+                order: -1;
+                width: 70px;
+                height: 70px;
+                font-size: 30px;
+            }
+
+            .glass-table thead {
+                display: none;
+            }
+
+            .glass-table tr {
+                display: block;
+                margin-bottom: 15px;
+                padding: 10px;
+                background: rgba(255, 255, 255, 0.02);
+            }
+
+            .glass-table td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 10px 15px;
+                text-align: right;
+                border: none;
+            }
+
+            .glass-table td::before {
+                content: attr(data-label);
+                color: var(--primary);
+                font-weight: bold;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+@endsection
 
 @section('content')
+    <div class="inventory-container">
 
-    <div class="container">
-
-        {{-- الإشعارات --}}
-
+        {{-- التنبيهات الزجاجية --}}
         @if (session('success'))
-            <div style="background: #d4edda; padding: 12px; margin-bottom: 20px; border-radius: 8px; color:#155724;">
-                {{ session('success') }}
+            <div class="alert alert-glass-success animate__animated animate__fadeInDown">
+                <i class="fas fa-check-circle"></i> {{ session('success') }}
             </div>
         @endif
 
         @if (session('error'))
-            <div style="background: #f8d7da; padding: 12px; margin-bottom: 20px; border-radius: 8px; color:#721c24;">
-                {{ session('error') }}
+            <div class="alert alert-danger animate__animated animate__fadeInDown"
+                style="background: rgba(230, 57, 70, 0.2); border: 1px solid #e63946; color: #fff; border-radius: 12px; padding: 15px;">
+                <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
             </div>
         @endif
 
-        {{-- العدادين وزرار الإضافة --}}
-
-        <div class="header-row">
-
-            <div class="stats-box">
-
-                <p>عدد المنتجات</p>
-
-                <p>{{ $countItems }}</p>
-
+        {{-- الإحصائيات وزر الإضافة --}}
+        <div class="header-row animate__animated animate__fadeIn">
+            <div class="glass-stats-card">
+                <span class="label">إجمالي القطع</span>
+                <span class="value">{{ $countItems }}</span>
             </div>
 
-            <button id="addButton" data-bs-toggle="modal" data-bs-target="#chooseActionModal">+</button>
+            <button class="btn-add-neon" data-bs-toggle="modal" data-bs-target="#chooseActionModal"
+                title="إضافة صنف أو كمية">
+                <i class="fas fa-plus">+</i>
+            </button>
 
+            <div class="glass-stats-card">
+                <span class="label">عدد الأصناف</span>
+                <span class="value">{{ $countProducts }}</span>
+        </div>
 
-            <div class="stats-box">
-
-                <p>عدد الأصناف</p>
-
-                <p>{{ $countProducts }}</p>
-
-            </div>
-
+        <div class="d-flex justify-content-center gap-2 mb-4 flex-wrap">
+            <a href="{{ route('inventory.index') }}" class="btn btn-outline-info rounded-pill px-4 py-2 small fw-bold">
+                📦 مخزن الخامات والمكونات
+            </a>
+            <a href="{{ route('recipes.index') }}" class="btn btn-outline-primary rounded-pill px-4 py-2 small fw-bold">
+                🧪 معيار الوصفات وتكاليف المنتجات
+            </a>
+            <a href="{{ route('purchase-invoices.index') }}" class="btn btn-outline-success rounded-pill px-4 py-2 small fw-bold">
+                🛒 فواتير الشراء والتوريد
+            </a>
         </div>
 
         {{-- البحث --}}
-
-        <div class="search-box">
-
-            <input type="text" id="searchBox" placeholder="🔍 بحث عن منتج">
-
+        <div class="search-wrapper animate__animated animate__fadeIn" style="animation-delay: 0.2s;">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchBox" class="glass-search" placeholder="ابحث عن منتج بالاسم أو الكود...">
         </div>
 
         {{-- الجدول --}}
-
-        <table>
-
-            <thead>
-
-                <tr>
-
-                    <th>المعرف</th>
-
-                    <th>اسم المنتج</th>
-
-                    <th>السعر</th>
-
-                    <th>التكلفة</th>
-
-                    <th>العدد</th>
-
-                </tr>
-
-            </thead>
-
-            <tbody id="productTable">
-                @foreach ($products as $product)
-                    <tr data-href="{{ route('products.show', $product->id) }}" style="cursor: pointer;">
-                        <td data-label="المعرف">{{ $product->id }}</td>
-                        <td data-label="اسم المنتج">{{ $product->name }}</td>
-                        <td data-label="السعر">{{ $product->price }}</td>
-                        <td data-label="التكلفة">{{ $product->cost }}</td>
-                        <td data-label="العدد">{{ $product->quantity }}</td>
+        <div class="table-container animate__animated animate__fadeInUp" style="animation-delay: 0.3s;">
+            <table class="glass-table">
+                <thead>
+                    <tr>
+                        <th>المعرف</th>
+                        <th>اسم المنتج</th>
+                        <th>الصنف</th>
+                        <th>السعر</th>
+                        <th>التكلفة</th>
+                        <th>النوع / الوصفة</th>
+                        <th>الكمية</th>
+                        <th>الإجراءات</th>
                     </tr>
-                @endforeach
-            </tbody>
-
-        </table>
+                </thead>
+                <tbody id="productTable">
+                    @foreach ($products as $product)
+                        <tr data-href="{{ route('products.show', $product->id) }}">
+                            <td data-label="المعرف">#{{ $product->id }}</td>
+                            <td data-label="اسم المنتج" class="fw-bold">{{ $product->name }}</td>
+                            <td data-label="الصنف">{{ $product->category?->name ?? '---' }}</td>
+                            <td data-label="السعر" class="text-success fw-bold">{{ number_format($product->price, 2) }} ج</td>
+                            <td data-label="التكلفة" class="text-info">{{ number_format($product->cost, 2) }} ج</td>
+                            <td data-label="الوصفة">
+                                @if($product->recipes->isNotEmpty())
+                                    <a href="{{ route('recipes.index') }}" class="badge rounded-pill text-decoration-none" style="background: rgba(0, 242, 254, 0.15); color: #00f2fe; border: 1px solid rgba(0, 242, 254, 0.3); font-size: 0.8rem; padding: 6px 10px;">
+                                        🧪 بوصفة ({{ $product->recipes->count() }} خامات)
+                                    </a>
+                                @elseif($product->is_produced)
+                                    <a href="{{ route('recipes.index') }}" class="badge rounded-pill text-decoration-none" style="background: rgba(234, 179, 8, 0.15); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.3); font-size: 0.8rem; padding: 6px 10px;">
+                                        ⚠️ بدون مقادير (أضف ريسبي)
+                                    </a>
+                                @else
+                                    <span class="badge rounded-pill" style="background: rgba(255, 255, 255, 0.08); color: #94a3b8; font-size: 0.8rem; padding: 6px 10px;">
+                                        🥫 مباشر جاهز
+                                    </span>
+                                @endif
+                            </td>
+                            <td data-label="الكمية">
+                                @if($product->recipes->isNotEmpty() || $product->is_produced)
+                                    <span class="badge rounded-pill" style="background: rgba(180, 101, 218, 0.15); color: #d8b4fe; border: 1px solid rgba(180, 101, 218, 0.3);">تحضير فوري</span>
+                                @else
+                                    <span class="badge-qty">{{ $product->quantity }}</span>
+                                @endif
+                            </td>
+                            <td data-label="الإجراءات">
+                                <div class="d-flex gap-2 justify-content-end align-items-center">
+                                    <a href="{{ route('recipes.index') }}" class="btn btn-sm btn-outline-info rounded-pill px-3 py-1 text-decoration-none" title="تعديل مكونات الوصفة">
+                                        🧪 ريسبي
+                                    </a>
+                                    {{-- نموذج حذف المنتج المباشر --}}
+                                    <form action="{{ route('products.destroy', $product->id) }}" method="POST"
+                                        class="delete-form m-0"
+                                        onsubmit="return confirm('⚠️ هل أنت متأكد من حذف المنتج ({{ $product->name }}) نهائياً؟');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn-delete-table" title="حذف المنتج">🗑️</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
     </div>
-    <script>
-        // جعل الصف قابل للنقر لعرض تفاصيل المنتج
-        document.addEventListener('DOMContentLoaded', function() {
-
-            const tbody = document.getElementById('productTable');
-
-            tbody.addEventListener('click', function(e) {
-                const row = e.target.closest('tr');
-                if (!row) return;
-
-                const url = row.dataset.href;
-                if (url) {
-                    window.location.href = url;
-                }
-            });
-
-        });
-    </script>
-
-    <script>
-        // البحث AJAX
-        document.getElementById('searchBox').addEventListener('keyup', function() {
-            let query = this.value;
-
-            fetch("{{ route('products.search') }}?query=" + query)
-                .then(response => response.json())
-                .then(data => {
-                    let tbody = document.getElementById('productTable');
-                    tbody.innerHTML = "";
-
-                    if (data.length > 0) {
-                        data.forEach(item => {
-                            tbody.innerHTML += `
-                                <tr data-href="/products/${item.id}" style="cursor:pointer;">
-                                    <td data-label="المعرف">${item.id}</td>
-                                    <td data-label="اسم المنتج">${item.name}</td>
-                                    <td data-label="السعر">${item.price}</td>
-                                    <td data-label="التكلفة">${item.cost}</td>
-                                    <td data-label="العدد">${item.quantity}</td>
-                                </tr>
-                            `;
-                        });
-                    }
-                });
-        });
-
-        // زرار الإضافة
-        document.getElementById('addButton').addEventListener('click', function() {
-
-        });
-    </script>
-
-
-
 
     {{-- المودالات --}}
     @include('products.modals.choose-action')
     @include('products.modals.add-product')
     @include('products.modals.add-quantity')
+    @include('products.modals.add-new-category')
 
+@endsection
+
+@push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const addQtyModal = document.getElementById('addQuantityModal');
-            if (!addQtyModal) return;
+            const tbody = document.getElementById('productTable');
+            const searchBox = document.getElementById('searchBox');
 
-            // لما المودال يفتح
-            addQtyModal.addEventListener('shown.bs.modal', function() {
-                const searchInput = document.getElementById('searchProduct');
-                const resultsList = document.getElementById('searchResults');
-                const form = document.getElementById('addQuantityForm');
-                const productIdInput = document.getElementById('product_id');
+            // النقر على الصفوف الانتقالية (تم تعديله لمنع التداخل مع زر الحذف)
+            tbody.addEventListener('click', function(e) {
+                // إذا تم الضغط على زر الحذف أو الفورم الخاص به لا تفعل شيئاً واترك عملية الحذف تتم
+                if (e.target.closest('.delete-form') || e.target.classList.contains('btn-delete-table')) {
+                    return;
+                }
 
-                if (!searchInput || !resultsList || !form || !productIdInput) return;
+                const row = e.target.closest('tr');
+                if (!row) return;
+                const url = row.dataset.href;
+                if (url) window.location.href = url;
+            });
 
-                // reset كل مرة يفتح فيها المودال
-                searchInput.value = '';
-                resultsList.innerHTML = '';
-                form.style.display = 'none';
-                productIdInput.value = '';
-                searchInput.focus();
+            // البحث AJAX المطور ليشمل زر الحذف التلقائي للمخرجات الجديدة
+            searchBox.addEventListener('keyup', function() {
+                let query = this.value;
 
-                // علشان ما نربطش نفس الحدث أكتر من مرة
-                if (searchInput.dataset.bound === '1') return;
-                searchInput.dataset.bound = '1';
-
-                // السيرش
-                searchInput.addEventListener('keyup', function() {
-                    const q = this.value.trim();
-                    if (q.length < 1) {
-                        resultsList.innerHTML = '';
-                        form.style.display = 'none';
-                        return;
-                    }
-
-                    fetch("{{ route('products.search') }}?query=" + encodeURIComponent(q))
-                        .then(res => res.json())
-                        .then(items => {
-                            resultsList.innerHTML = '';
-
-                            if (!items.length) {
-                                resultsList.innerHTML =
-                                    '<li class="list-group-item text-center text-muted">لا توجد نتائج</li>';
-                                form.style.display = 'none';
-                                return;
-                            }
-
-                            items.forEach(item => {
-                                const li = document.createElement('li');
-                                li.className = 'list-group-item list-group-item-action';
-                                li.style.cursor = 'pointer';
-                                li.textContent = `${item.name} (المعرف: ${item.id})`;
-
-                                li.addEventListener('click', function() {
-                                    productIdInput.value = item.id;
-                                    form.action =
-                                        "{{ route('products.addQuantity', ':id') }}"
-                                        .replace(':id', item.id);
-
-                                    form.style.display = 'block';
-                                    resultsList.innerHTML = '';
-                                    searchInput.value = item.name;
-                                });
-
-                                resultsList.appendChild(li);
+                fetch("{{ route('products.search') }}?query=" + encodeURIComponent(query))
+                    .then(response => response.json())
+                    .then(data => {
+                        tbody.innerHTML = "";
+                        if (data.length > 0) {
+                            data.forEach(item => {
+                                tbody.innerHTML += `
+                                <tr data-href="/products/${item.id}" class="animate__animated animate__fadeIn">
+                                    <td data-label="المعرف">#${item.id}</td>
+                                    <td data-label="اسم المنتج" class="fw-bold">${item.name}</td>
+                                    <td data-label="الصنف">${item.category ? item.category.name : '---'}</td>
+                                    <td data-label="السعر" class="text-success">${item.price}</td>
+                                    <td data-label="التكلفة" class="text-muted">${item.cost}</td>
+                                    <td data-label="الكمية"><span class="badge-qty">${item.quantity}</span></td>
+                                    <td data-label="الإجراءات">
+                                        <form action="/products/${item.id}" method="POST" class="delete-form m-0" onsubmit="return confirm('⚠️ هل أنت متأكد من حذف المنتج (${item.name}) نهائياً؟');">
+                                            <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                                            <input type="hidden" name="_method" value="DELETE">
+                                            <button type="submit" class="btn-delete-table" title="حذف المنتج">🗑️ حذف</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            `;
                             });
-                        })
-                        .catch(err => {
-                            console.error('Search error:', err);
-                        });
-                });
+                        } else {
+                            tbody.innerHTML =
+                                `<tr><td colspan="7" class="text-center p-5 text-muted">لا توجد نتائج مطابقة</td></tr>`;
+                        }
+                    });
             });
         });
     </script>
+    <script>
+        document.querySelectorAll('.action-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                let action = this.dataset.action;
 
-@endsection
+                let chooseModal = bootstrap.Modal.getInstance(document.getElementById('chooseActionModal'));
+                chooseModal.hide();
+
+                setTimeout(() => {
+                    if (action === 'product') {
+                        new bootstrap.Modal(document.getElementById('addProductModal')).show();
+                    }
+                    if (action === 'category') {
+                        new bootstrap.Modal(document.getElementById('addCategoryModal')).show();
+                    }
+                    if (action === 'quantity') {
+                        new bootstrap.Modal(document.getElementById('addQuantityModal')).show();
+                    }
+                }, 400);
+            });
+        });
+    </script>
+@endpush

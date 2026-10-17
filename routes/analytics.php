@@ -16,8 +16,10 @@ Route::prefix('analytics')->name('analytics.')->middleware('auth')->group(functi
     Route::get('subscriptions', [\App\Http\Controllers\AnalyticsController::class,'subscriptions'])->name('subscriptions');
     Route::get('users', [\App\Http\Controllers\AnalyticsController::class,'users'])->name('users');
     Route::get('visits', [\App\Http\Controllers\AnalyticsController::class,'visits'])->name('visits');
-  Route::get('total-income', [\App\Http\Controllers\AnalyticsController::class, 'totalIncomeAndProfit'])
+    Route::get('total-income', [\App\Http\Controllers\AnalyticsController::class, 'totalIncomeAndProfit'])
     ->name('totalIncomeAndProfit');
+    Route::get('comprehensive', [\App\Http\Controllers\AnalyticsController::class, 'comprehensive'])
+    ->name('comprehensive');
   });
 
 });

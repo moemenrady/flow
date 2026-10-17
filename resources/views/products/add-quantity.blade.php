@@ -36,31 +36,4 @@
     </div>
 </div>
 
-<script>
-document.getElementById('searchProduct').addEventListener('keyup', function() {
-    let query = this.value;
-    if(query.length < 2) return;
-
-    fetch("{{ route('products.search') }}?query=" + query)
-        .then(res => res.json())
-        .then(data => {
-            let results = document.getElementById('searchResults');
-            results.innerHTML = "";
-            data.forEach(item => {
-                let li = document.createElement('li');
-                li.className = "list-group-item list-group-item-action";
-                li.textContent = item.name + " (المعرف: " + item.id + ")";
-                li.style.cursor = "pointer";
-                li.onclick = function() {
-                    document.getElementById('product_id').value = item.id;
-                    document.getElementById('addQuantityForm').action = "/products/" + item.id + "/add-quantity";
-                    document.getElementById('addQuantityForm').style.display = "block";
-                    results.innerHTML = "";
-                    document.getElementById('searchProduct').value = item.name;
-                };
-                results.appendChild(li);
-            });
-        });
-});
-</script>
 @endsection

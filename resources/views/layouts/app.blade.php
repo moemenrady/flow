@@ -120,9 +120,13 @@
             transition: background .18s ease, transform .12s ease;
         }
 
+        /*
         .drawer-links a:hover {
             background: rgba(0, 0, 0, 0.04);
             transform: translateX(4px);
+        } */
+        .drawer-links a {
+            will-change: transform;
         }
 
         /* responsive: أصغر avatar للموبايل */
@@ -287,7 +291,6 @@
     @yield('content')
     <!-- Bootstrap JS Bundle -->
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Drawer -->
     @auth
         <div class="drawer" id="drawer">
@@ -349,6 +352,17 @@
             <hr class="drawer-sep">
 
             <ul class="drawer-links">
+                <li>
+                    <a href="{{ route('shifts.active') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" style="vertical-align:middle; margin-right:6px;">
+                            <!-- أيقونة ساعة / جدول -->
+                            <path d="M12 1v11l9 5-9 5v11l-9-5 9-5V1z"></path>
+                        </svg>
+                        شفتات الموظفين
+                    </a>
+                </li>
                 <li>
                     <a href="#" id="logout-btn" role="button">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
@@ -464,10 +478,6 @@
         @endif
     </script>
 
-    <!-- Pusher JS -->
-    <script src="https://js.pusher.com/8.2/pusher.min.js"></script>
-    <!-- Laravel Echo (IIFE) -->
-    <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.15.3/dist/echo.iife.js"></script>
 
     <script>
         // عرض Snackbar بسيط
@@ -594,7 +604,7 @@
                 Keyboard Listener (Scanner)
             =============================== */
             document.addEventListener('keydown', (e) => {
-
+                if (e.repeat) return;
                 // ❌ تجاهل أي كتابة أثناء البحث
                 if (isSearching) return;
 
@@ -740,15 +750,15 @@
            
         </form>
     `;
-//    <div class="d-flex gap-2" style="flex-wrap:wrap;">
+            //    <div class="d-flex gap-2" style="flex-wrap:wrap;">
 
-//                         <!-- زر يفتح المودال — لا يرسل الفورم -->
-//                         <button type="button" id="openPrivateBtn" class="btn-submit"
-//                             style="background: linear-gradient(135deg,#7b61ff,#5e3bff); flex:1; min-width:140px;"
-//                             data-bs-toggle="modal" data-bs-target="#startBookingModal">
-//                             🔒 بدء جلسة خاصة
-//                         </button>
-//                     </div>
+            //                         <!-- زر يفتح المودال — لا يرسل الفورم -->
+            //                         <button type="button" id="openPrivateBtn" class="btn-submit"
+            //                             style="background: linear-gradient(135deg,#7b61ff,#5e3bff); flex:1; min-width:140px;"
+            //                             data-bs-toggle="modal" data-bs-target="#startBookingModal">
+            //                             🔒 بدء جلسة خاصة
+            //                         </button>
+            //                     </div>
             document.body.appendChild(box);
 
             box.querySelector('button').focus();
@@ -831,8 +841,8 @@
 
         }
 
-        // زر "بدء جلسة خاصة"
-        const privateBtn = box.querySelector('#openPrivateBtn');
+        // زر "بدء جلسة خاصة"         const privateBtn = box.querySelector('#openPrivateBtn');
+
 
         privateBtn.addEventListener('click', () => {
             modalPhone.value = client.phone || '';
@@ -981,6 +991,11 @@
     <form id="start-shift-form" action="{{ route('shift.start') }}" method="POST" style="display:none;">
         @csrf
     </form>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Pusher JS -->
+    <script src="https://js.pusher.com/8.2/pusher.min.js"></script>
+    <!-- Laravel Echo (IIFE) -->
+    <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.15.3/dist/echo.iife.js"></script>
 
 </body>
 

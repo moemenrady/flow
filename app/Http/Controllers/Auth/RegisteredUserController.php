@@ -51,30 +51,18 @@ public function store(Request $request)
         $role = 'admin';
     }
 
-    // انشئ المستخدم (مؤقتًا غير مفعل)
     $user = User::create([
         'name' => $request->name,
         'email' => $request->email,
         'password' => Hash::make($request->password),
         'role' => $role,
-        'email_verified_at' => null,
+        'email_verified_at' => now(),
     ]);
 
-    // genereate 6-digit code
-    $code = random_int(100000, 999999);
 
-    // خزّن الكود مؤقتًا في الكاش مرتبط بالإيميل (أو استخدم جدول verification_codes لو تحب)
-    $cacheKey = 'email_verif_code_'.$user->email;
-    Cache::put($cacheKey, [
-        'code' => $code,
-        'user_id' => $user->id,
-    ], now()->addMinutes(10)); // صالح 10 دقائق
 
-    // أرسل كود عبر إيميل باستخدام Mailable
-    Mail::to("moemen.elbidek@gmail.com")->send(new VerifyCodeMail($user, $code));
-
-    // أرسل المستخدم لصفحة إدخال الكود (نمرر الايميل مش الباسورد)
-    return redirect()->route('register.verify.show')->with('email', $user->email);
+  
+    return redirect()->route('main.create')->with('email', $user->email);
 }
 
 public function showVerifyForm()

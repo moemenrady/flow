@@ -54,33 +54,7 @@ class StatusUpdater
     | حالة الموظف (role = user)
     |--------------------------------------------------------------------------
     */
-        if ($user->hasRole('user')) {
-
-            if ($openShift) {
-
-                // لو الشيفت بدأ قبل منتصف الليل
-                if (Carbon::parse($openShift->start_time)->lt($todayMidnight)) {
-
-                    // اغلاق الشيفت عند منتصف الليل
-                    $openShift->end_time = $todayMidnight;
-                    $openShift->duration = Carbon::parse($openShift->start_time)
-                        ->diffInMinutes($todayMidnight);
-
-                    $openShift->save();
-
-                    ShiftAction::create([
-                        'shift_id' => $openShift->id,
-                        'action_type' => 'end_shift',
-                        'notes' => 'تم غلق الشيفت تلقائياً عند بداية اليوم (موظف)',
-                        'amount' => 0,
-                        'expense_amount' => 0,
-                    ]);
-                }
-            }
-
-            // ❌ مهم جدًا: لا نفتح شيفت جديد للموظف
-            return;
-        }
+       
 
         /*
     |--------------------------------------------------------------------------

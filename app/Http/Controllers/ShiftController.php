@@ -10,6 +10,16 @@ use Illuminate\Support\Carbon;
 
 class ShiftController extends Controller
 {
+  public function activeShifts()
+  {
+    $shifts = Shift::with('user')
+      ->whereNull('end_time')
+      ->latest()
+      ->get();
+
+    return view('employees.active_shifts', compact('shifts'));
+  }
+
   public function deposit(Request $request, $shiftId)
   {
     $shift = Shift::findOrFail($shiftId);
@@ -41,20 +51,25 @@ class ShiftController extends Controller
   }
   public function show(Shift $shift)
   {
-    $shift->load(['user', 'actions.invoice', 'actions.expenseDraft']);
+    // تعديل هنا لتحميل عناصر الفاتورة والجلسة المرتبطة بها
+    $shift->load([
+      'user',
+      'actions.invoice.items.session',
+      'actions.expenseDraft'
+    ]);
 
     // حسابات مختصرة
-    $totalIncome = $shift->actions()->sum('amount');
+    $totalIncome = $shift->actions->sum(function ($a) {
+      return $a->amount ?? 0;
+    });
     $totalExpense = $shift->actions()->sum('expense_amount');
     $totalNet = $totalIncome - $totalExpense;
 
-    // ترتيب actions حسب الوقت (أحدث أول/قديم أول) — افترض created_at
+    // ترتيب actions حسب الوقت
     $actions = $shift->actions()->orderBy('created_at', 'asc')->get();
-
+    // dd($totalIncome, $totalExpense, $totalNet,$actions->sum('amount'), $actions->sum('expense_amount'));
     return view('daily.user_shifts.show', compact('shift', 'actions', 'totalIncome', 'totalExpense', 'totalNet'));
   }
-
-
   public function index(Request $request)
   {
     $user = Auth::user();
@@ -156,8 +171,7 @@ class ShiftController extends Controller
       ->first();
 
     // 🔹 آخر شيفت اتقفل النهارده وقيمته > 0
-    $lastClosedShiftToday = Shift::
-      whereNotNull('end_time')
+    $lastClosedShiftToday = Shift::whereNotNull('end_time')
       ->whereDate('start_time', $today)
       ->whereDate('end_time', $today)
       ->where('deposited_amount', '>', 0) // فقط المبالغ > 0
@@ -312,5 +326,23 @@ class ShiftController extends Controller
       'total_expense' => $shift->total_expense,
       'net_profit' => $shift->net_profit,
     ]);
+  }
+  public function closeShift($id)
+  {
+    $shift = Shift::findOrFail($id);
+
+    $shift->update([
+      'end_time' => now(),
+    ]);
+
+    return back()->with('success', 'تم إغلاق الشيفت');
+  }
+  public function deleteShift($id)
+  {
+    $shift = Shift::findOrFail($id);
+
+    $shift->delete();
+
+    return back()->with('success', 'تم حذف الشيفت');
   }
 }
